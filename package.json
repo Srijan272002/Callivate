@@ -1,23 +1,69 @@
 {
-  "name": "callivate-temp",
+  "name": "callivate",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@expo-google-fonts/gowun-dodum": "^0.4.0",
+    "@expo-google-fonts/lexend-deca": "^0.4.0",
+    "@expo/vector-icons": "^14.1.0",
+    "@react-native-community/datetimepicker": "8.4.1",
+    "@react-native-community/netinfo": "^11.4.1",
+    "@react-navigation/bottom-tabs": "^6.6.1",
+    "@react-navigation/native": "^6.1.18",
+    "@react-navigation/stack": "^6.4.1",
+    "@supabase/supabase-js": "^2.50.2",
     "expo": "~53.0.13",
+    "expo-auth-session": "~6.2.0",
+    "expo-av": "~15.1.6",
+    "expo-crypto": "~14.1.5",
+    "expo-font": "^13.3.1",
+    "expo-linear-gradient": "^14.1.5",
+    "expo-linking": "~7.1.5",
+    "expo-notifications": "~0.31.3",
+    "expo-secure-store": "~14.2.3",
+    "expo-splash-screen": "^0.30.9",
     "expo-status-bar": "~2.2.3",
+    "expo-web-browser": "^14.2.0",
+    "nativewind": "^2.0.11",
     "react": "19.0.0",
-    "react-native": "0.79.4"
+    "react-native": "0.79.4",
+    "react-native-calendars": "^1.1313.0",
+    "react-native-gesture-handler": "~2.24.0",
+    "react-native-safe-area-context": "^5.4.0",
+    "react-native-screens": "~4.11.1",
+    "react-native-svg": "^15.11.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.0.10",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.0",
+    "eslint-config-expo": "~9.2.0",
+    "prettier": "^3.3.3",
+    "tailwindcss": "^3.3.2",
     "typescript": "~5.8.3"
   },
-  "private": true
+  "private": true,
+  "keywords": [
+    "react-native",
+    "expo",
+    "ai",
+    "productivity",
+    "voice",
+    "callivate"
+  ],
+  "author": "Callivate Team",
+  "license": "MIT",
+  "description": "Voice-first productivity app with AI-powered reminders and streak tracking"
 }
