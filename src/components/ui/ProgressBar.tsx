@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, ViewStyle, TextStyle } from 'react-native';
+import { View, ViewStyle, TextStyle } from 'react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useTheme } from '../../hooks/useTheme';
 import { borderRadius, fontSize } from '../../styles/theme';
+import { Text } from './Text';
 
 interface ProgressBarProps {
   progress: number; // 0-100
@@ -104,6 +105,8 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     position: 'relative',
   };
 
+  const progressColor = getProgressColor();
+
   const animatedFillStyle = useAnimatedStyle(() => {
     const width = interpolate(
       animatedProgress.value,
@@ -113,7 +116,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
 
     return {
       width: `${width}%`,
-      backgroundColor: getProgressColor(),
+      backgroundColor: progressColor,
       height: '100%',
       borderRadius: borderRadius.full,
     };

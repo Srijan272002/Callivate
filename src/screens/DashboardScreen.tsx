@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
-  Text, 
   StyleSheet, 
   SafeAreaView, 
   ScrollView, 
@@ -13,9 +12,10 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { CompositeNavigationProp } from '@react-navigation/native';
-import { colors, fontSize, spacing, fontWeight, borderRadius } from '../styles/theme';
+import { fontSize, spacing, fontWeight, borderRadius } from '../styles/theme';
 import { useAuth } from '../hooks/useAuth';
-import { Button, Card, Badge, ProgressBar } from '../components/ui';
+import { useTheme } from '../hooks/useTheme';
+import { Button, Card, Badge, ProgressBar, Text } from '../components/ui';
 import { Task, RootStackParamList, MainTabParamList } from '../types';
 
 type NavigationProp = CompositeNavigationProp<
@@ -74,8 +74,12 @@ const mockStats = {
 export const DashboardScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
+  const { theme, isDark } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
+
+  // Create dynamic styles based on current theme
+  const styles = React.useMemo(() => createStyles(theme, isDark), [theme, isDark]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -161,7 +165,7 @@ export const DashboardScreen: React.FC = () => {
           <Card style={styles.statCard} shadow="lg">
             <View style={styles.statContent}>
               <View style={styles.statIcon}>
-                <Ionicons name="flame" size={24} color={colors.warning[500]} />
+                <Ionicons name="flame" size={24} color={theme.colors.warning} />
               </View>
               <View style={styles.statInfo}>
                 <Text style={styles.statNumber}>{mockStats.currentStreak}</Text>
@@ -173,7 +177,7 @@ export const DashboardScreen: React.FC = () => {
           <Card style={styles.statCard} shadow="lg">
             <View style={styles.statContent}>
               <View style={styles.statIcon}>
-                <Ionicons name="checkmark-circle" size={24} color={colors.success[500]} />
+                <Ionicons name="checkmark-circle" size={24} color={theme.colors.success} />
               </View>
               <View style={styles.statInfo}>
                 <Text style={styles.statNumber}>{completedTasksToday}/{todaysTasks.length}</Text>
@@ -195,7 +199,7 @@ export const DashboardScreen: React.FC = () => {
             progress={(completedTasksToday / Math.max(todaysTasks.length, 1)) * 100}
             height={12}
             showLabel={false}
-            color={colors.primary[500]}
+            color={theme.colors.primary}
           />
           <Text style={styles.progressSubtext}>
             {completedTasksToday} of {todaysTasks.length} tasks completed
@@ -206,66 +210,66 @@ export const DashboardScreen: React.FC = () => {
         <Card style={styles.tasksCard} shadow="md">
           <View style={styles.tasksHeader}>
             <Text style={styles.tasksTitle}>Today's Tasks</Text>
-            <Button
-              title="Create Task"
-              size="sm"
-              onPress={handleCreateTask}
-              style={styles.createTaskButton}
-            />
+            <TouchableOpacity onPress={handleCreateTask} style={styles.addButton}>
+              <Ionicons name="add" size={20} color={theme.colors.primary} />
+            </TouchableOpacity>
           </View>
 
           {todaysTasks.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="calendar-outline" size={48} color={colors.gray[400]} />
+              <Ionicons name="calendar-outline" size={48} color={theme.colors.textSecondary} />
               <Text style={styles.emptyStateText}>No tasks scheduled for today</Text>
-              <Text style={styles.emptyStateSubtext}>Create your first task to get started!</Text>
+              <Text style={styles.emptyStateSubtext}>Create your first AI reminder!</Text>
+              <Button
+                title="Create Task"
+                size="sm"
+                onPress={handleCreateTask}
+                style={styles.emptyStateButton}
+              />
             </View>
           ) : (
             <View style={styles.tasksList}>
               {todaysTasks.map((task) => (
                 <TouchableOpacity
                   key={task.id}
-                  style={[
-                    styles.taskItem,
-                    task.isCompleted && styles.taskItemCompleted
-                  ]}
+                  style={[styles.taskItem, task.isCompleted && styles.taskItemCompleted]}
                   onPress={() => handleTaskToggle(task.id)}
                 >
-                  <View style={styles.taskLeft}>
-                    <View style={[
-                      styles.taskCheckbox,
-                      task.isCompleted && styles.taskCheckboxCompleted
-                    ]}>
-                      {task.isCompleted && (
-                        <Ionicons name="checkmark" size={16} color="#ffffff" />
+                  <View style={styles.taskContent}>
+                    <View style={styles.taskMeta}>
+                      <View style={[
+                        styles.taskStatus,
+                        { backgroundColor: task.isCompleted ? theme.colors.success : theme.colors.textSecondary }
+                      ]}>
+                        <Ionicons
+                          name={task.isCompleted ? "checkmark" : "time"}
+                          size={12}
+                          color="#ffffff"
+                        />
+                      </View>
+                      <Text style={styles.taskTime}>{formatTime(task.scheduledTime)}</Text>
+                      {task.isSilentMode && (
+                        <View style={styles.silentBadge}>
+                          <Ionicons name="notifications-off" size={12} color={theme.colors.textSecondary} />
+                        </View>
                       )}
                     </View>
-                    <View style={styles.taskInfo}>
-                      <Text style={[
-                        styles.taskTitle,
-                        task.isCompleted && styles.taskTitleCompleted
-                      ]}>
-                        {task.title}
-                      </Text>
-                      <View style={styles.taskMeta}>
-                        <Text style={styles.taskTime}>{formatTime(task.scheduledTime)}</Text>
-                        {task.isSilentMode && (
-                          <View style={styles.taskMetaItem}>
-                            <Ionicons name="notifications-off" size={12} color={colors.gray[500]} />
-                            <Text style={styles.taskMetaText}>Silent</Text>
-                          </View>
-                        )}
-                        {task.isRecurring && (
-                          <View style={styles.taskMetaItem}>
-                            <Ionicons name="repeat" size={12} color={colors.gray[500]} />
-                            <Text style={styles.taskMetaText}>{task.recurrenceType}</Text>
-                          </View>
-                        )}
+                    <Text style={[styles.taskTitle, task.isCompleted && styles.taskTitleCompleted]}>
+                      {task.title}
+                    </Text>
+                    {task.isRecurring && (
+                      <View style={styles.recurringBadge}>
+                        <Ionicons name="repeat" size={12} color={theme.colors.textSecondary} />
+                        <Text style={styles.recurringText}>{task.recurrenceType}</Text>
                       </View>
-                    </View>
+                    )}
                   </View>
-                  <TouchableOpacity style={styles.taskOptions}>
-                    <Ionicons name="ellipsis-horizontal" size={20} color={colors.gray[400]} />
+                  <TouchableOpacity style={styles.taskAction}>
+                    <Ionicons
+                      name={task.isCompleted ? "checkmark-circle" : "ellipse-outline"}
+                      size={24}
+                      color={task.isCompleted ? theme.colors.success : theme.colors.textSecondary}
+                    />
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))}
@@ -273,37 +277,39 @@ export const DashboardScreen: React.FC = () => {
           )}
         </Card>
 
-        {/* Quick Analytics Preview */}
-        <Card style={styles.analyticsCard} shadow="md">
-          <View style={styles.analyticsHeader}>
-            <Text style={styles.analyticsTitle}>This Month</Text>
-            <TouchableOpacity onPress={handleAnalytics}>
-              <Text style={styles.analyticsLink}>View Details</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.analyticsGrid}>
-            <View style={styles.analyticsItem}>
-              <Text style={styles.analyticsNumber}>{mockStats.completionRate}%</Text>
-              <Text style={styles.analyticsLabel}>Completion Rate</Text>
+        {/* Quick Actions */}
+        <View style={styles.quickActions}>
+          <TouchableOpacity style={styles.quickAction} onPress={handleAnalytics}>
+            <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.primary + '10' }]}>
+              <Ionicons name="bar-chart" size={24} color={theme.colors.primary} />
             </View>
-            <View style={styles.analyticsItem}>
-              <Text style={styles.analyticsNumber}>{mockStats.longestStreak}</Text>
-              <Text style={styles.analyticsLabel}>Best Streak</Text>
-            </View>
-          </View>
-        </Card>
+            <Text style={styles.quickActionText}>View Analytics</Text>
+          </TouchableOpacity>
 
-        <View style={styles.bottomSpacing} />
+          <TouchableOpacity style={styles.quickAction} onPress={handleCreateTask}>
+            <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.success + '10' }]}>
+              <Ionicons name="add-circle" size={24} color={theme.colors.success} />
+            </View>
+            <Text style={styles.quickActionText}>Quick Task</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.quickAction}>
+            <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.warning + '10' }]}>
+              <Ionicons name="notifications" size={24} color={theme.colors.warning} />
+            </View>
+            <Text style={styles.quickActionText}>Reminders</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
+// Dynamic styles function that accepts theme
+const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.gray[50],
+    backgroundColor: theme.colors.background,
   },
   content: {
     flex: 1,
@@ -313,210 +319,187 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   greeting: {
-    fontSize: fontSize['3xl'],
+    fontSize: fontSize['2xl'],
     fontWeight: '700',
-    color: colors.gray[900],
+    color: theme.colors.text,
     marginBottom: spacing.xs,
   },
   subGreeting: {
-    fontSize: fontSize.lg,
-    color: colors.gray[600],
+    fontSize: fontSize.base,
+    color: theme.colors.textSecondary,
   },
   statsContainer: {
     flexDirection: 'row',
-    gap: spacing.md,
     marginBottom: spacing.lg,
+    gap: spacing.md,
   },
   statCard: {
     flex: 1,
-    padding: spacing.lg,
+    padding: spacing.md,
   },
   statContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   statIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.gray[100],
-    alignItems: 'center',
-    justifyContent: 'center',
     marginRight: spacing.md,
   },
   statInfo: {
     flex: 1,
   },
   statNumber: {
-    fontSize: fontSize['2xl'],
+    fontSize: fontSize.xl,
     fontWeight: '700',
-    color: colors.gray[900],
+    color: theme.colors.text,
     marginBottom: spacing.xs / 2,
   },
   statLabel: {
     fontSize: fontSize.sm,
-    color: colors.gray[600],
+    color: theme.colors.textSecondary,
   },
   progressCard: {
-    padding: spacing.lg,
     marginBottom: spacing.lg,
   },
   progressHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: spacing.md,
   },
   progressTitle: {
     fontSize: fontSize.lg,
     fontWeight: '600',
-    color: colors.gray[900],
+    color: theme.colors.text,
   },
   progressSubtext: {
     fontSize: fontSize.sm,
-    color: colors.gray[600],
+    color: theme.colors.textSecondary,
     marginTop: spacing.sm,
   },
   tasksCard: {
-    padding: spacing.lg,
     marginBottom: spacing.lg,
   },
   tasksHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: spacing.lg,
   },
   tasksTitle: {
     fontSize: fontSize.lg,
     fontWeight: '600',
-    color: colors.gray[900],
+    color: theme.colors.text,
   },
-  createTaskButton: {
-    paddingHorizontal: spacing.md,
+  addButton: {
+    padding: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: theme.colors.primary + '10',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: spacing['2xl'],
+    paddingVertical: spacing['3xl'],
   },
   emptyStateText: {
     fontSize: fontSize.lg,
-    color: colors.gray[600],
+    fontWeight: '500',
+    color: theme.colors.text,
     marginTop: spacing.md,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   emptyStateSubtext: {
-    fontSize: fontSize.sm,
-    color: colors.gray[500],
+    fontSize: fontSize.base,
+    color: theme.colors.textSecondary,
+    marginBottom: spacing.xl,
+  },
+  emptyStateButton: {
+    paddingHorizontal: spacing.xl,
   },
   tasksList: {
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: theme.colors.surface,
     borderRadius: borderRadius.lg,
-    backgroundColor: colors.gray[50],
+    borderWidth: 1,
+    borderColor: isDark ? theme.colors.textSecondary + '10' : theme.colors.surface,
   },
   taskItemCompleted: {
     opacity: 0.7,
+    backgroundColor: isDark ? theme.colors.success + '10' : theme.colors.success + '05',
   },
-  taskLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  taskContent: {
     flex: 1,
-  },
-  taskCheckbox: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.base,
-    borderWidth: 2,
-    borderColor: colors.gray[300],
-    marginRight: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  taskCheckboxCompleted: {
-    backgroundColor: colors.success[500],
-    borderColor: colors.success[500],
-  },
-  taskInfo: {
-    flex: 1,
-  },
-  taskTitle: {
-    fontSize: fontSize.base,
-    fontWeight: '500',
-    color: colors.gray[900],
-    marginBottom: spacing.xs / 2,
-  },
-  taskTitleCompleted: {
-    textDecorationLine: 'line-through',
-    color: colors.gray[600],
   },
   taskMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  taskStatus: {
+    width: 20,
+    height: 20,
+    borderRadius: borderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
   },
   taskTime: {
     fontSize: fontSize.sm,
-    color: colors.gray[600],
+    color: theme.colors.textSecondary,
+    marginRight: spacing.md,
   },
-  taskMetaItem: {
+  silentBadge: {
+    backgroundColor: theme.colors.textSecondary + '10',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: borderRadius.md,
+  },
+  taskTitle: {
+    fontSize: fontSize.base,
+    fontWeight: '500',
+    color: theme.colors.text,
+    marginBottom: spacing.sm,
+  },
+  taskTitleCompleted: {
+    textDecorationLine: 'line-through',
+    color: theme.colors.textSecondary,
+  },
+  recurringBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs / 2,
   },
-  taskMetaText: {
+  recurringText: {
     fontSize: fontSize.xs,
-    color: colors.gray[500],
+    color: theme.colors.textSecondary,
+    marginLeft: spacing.xs,
+    textTransform: 'capitalize',
   },
-  taskOptions: {
+  taskAction: {
     padding: spacing.sm,
   },
-  analyticsCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  analyticsHeader: {
+  quickActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
+    justifyContent: 'space-around',
+    marginTop: spacing.lg,
   },
-  analyticsTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    color: colors.gray[900],
-  },
-  analyticsLink: {
-    fontSize: fontSize.sm,
-    color: colors.primary[600],
-    fontWeight: '500',
-  },
-  analyticsGrid: {
-    flexDirection: 'row',
-    gap: spacing.xl,
-  },
-  analyticsItem: {
-    flex: 1,
+  quickAction: {
     alignItems: 'center',
   },
-  analyticsNumber: {
-    fontSize: fontSize['2xl'],
-    fontWeight: '700',
-    color: colors.gray[900],
-    marginBottom: spacing.xs / 2,
+  quickActionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
   },
-  analyticsLabel: {
+  quickActionText: {
     fontSize: fontSize.sm,
-    color: colors.gray[600],
+    color: theme.colors.textSecondary,
     textAlign: 'center',
-  },
-  bottomSpacing: {
-    height: spacing.xl,
   },
 }); 

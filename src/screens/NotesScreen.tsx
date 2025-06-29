@@ -10,11 +10,15 @@ import {
   Alert,
   Modal,
   FlatList,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fontSize, spacing, borderRadius, fontFamily } from '../styles/theme';
+import { fontSize, spacing, borderRadius, fontFamily } from '../styles/theme';
+import { useTheme } from '../hooks/useTheme';
 import { Card, Button, Input } from '../components/ui';
 import { Note } from '../types';
+
+const { width } = Dimensions.get('window');
 
 // Mock notes data
 const mockNotes: Note[] = [
@@ -25,7 +29,7 @@ const mockNotes: Note[] = [
     content: 'Today I completed my workout and feel energized. Planning to read for 30 minutes this evening.',
     fontSize: 16,
     fontFamily: 'System',
-    textColor: colors.gray[900],
+    textColor: '#000000',
     createdAt: '2024-01-15T08:00:00Z',
     updatedAt: '2024-01-15T08:15:00Z',
   },
@@ -36,7 +40,7 @@ const mockNotes: Note[] = [
     content: 'Ideas for new tasks:\n- Morning meditation (10 min)\n- Evening walk\n- Weekly meal prep\n- Learn Spanish (30 min daily)',
     fontSize: 14,
     fontFamily: 'System',
-    textColor: colors.primary[700],
+    textColor: '#000000',
     createdAt: '2024-01-14T18:30:00Z',
     updatedAt: '2024-01-14T18:45:00Z',
   },
@@ -47,7 +51,7 @@ const mockNotes: Note[] = [
     content: 'Remember: consistency is key! Small daily actions lead to big results. Keep going! 💪',
     fontSize: 18,
     fontFamily: 'System',
-    textColor: colors.success[700],
+    textColor: '#ffffff',
     createdAt: '2024-01-13T12:00:00Z',
     updatedAt: '2024-01-13T12:05:00Z',
   },
@@ -55,12 +59,8 @@ const mockNotes: Note[] = [
 
 const fontSizes = [12, 14, 16, 18, 20, 24];
 const textColors = [
-  { name: 'Black', value: colors.gray[900] },
-  { name: 'Blue', value: colors.primary[700] },
-  { name: 'Green', value: colors.success[700] },
-  { name: 'Orange', value: colors.warning[700] },
-  { name: 'Red', value: colors.danger[700] },
-  { name: 'Gray', value: colors.gray[600] },
+  { name: 'Black', value: '#000000' },
+  { name: 'White', value: '#ffffff' },
 ];
 
 interface NoteEditorProps {
@@ -71,10 +71,12 @@ interface NoteEditorProps {
 }
 
 const NoteEditor: React.FC<NoteEditorProps> = ({ note, visible, onClose, onSave }) => {
+  const { theme, isDark } = useTheme();
+  const styles = React.useMemo(() => createStyles(theme, isDark), [theme, isDark]);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [selectedFontSize, setSelectedFontSize] = useState(16);
-  const [selectedColor, setSelectedColor] = useState(colors.gray[900]);
+  const [selectedColor, setSelectedColor] = useState(isDark ? '#ffffff' : '#000000');
   const [showFormatOptions, setShowFormatOptions] = useState(false);
 
   useEffect(() => {
@@ -87,7 +89,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, visible, onClose, onSave 
       setTitle('');
       setContent('');
       setSelectedFontSize(16);
-      setSelectedColor(colors.gray[900]);
+      setSelectedColor(isDark ? '#ffffff' : '#000000');
     }
   }, [note, visible]);
 
@@ -139,7 +141,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, visible, onClose, onSave 
             style={[styles.toolbarButton, showFormatOptions && styles.toolbarButtonActive]}
             onPress={() => setShowFormatOptions(!showFormatOptions)}
           >
-            <Ionicons name="text" size={20} color={colors.gray[600]} />
+            <Ionicons name="text" size={20} color="#4b5563" />
             <Text style={styles.toolbarButtonText}>Format</Text>
           </TouchableOpacity>
 
@@ -219,15 +221,26 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, visible, onClose, onSave 
 };
 
 export const NotesScreen: React.FC = () => {
+  const { theme, isDark } = useTheme();
   const [notes, setNotes] = useState<Note[]>(mockNotes);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'favorites'>('all');
   const [editorVisible, setEditorVisible] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
 
-  const filteredNotes = notes.filter(note =>
-    note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    note.content.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Create dynamic styles based on current theme
+  const styles = React.useMemo(() => createStyles(theme, isDark), [theme, isDark]);
+
+  const filteredNotes = notes.filter(note => {
+    const matchesSearch = searchQuery === '' || 
+      note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      note.content.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesFilter = selectedFilter === 'all' || 
+      (selectedFilter === 'favorites' && false); // Note: isFavorite functionality can be added later
+    
+    return matchesSearch && matchesFilter;
+  });
 
   const handleCreateNote = () => {
     setEditingNote(null);
@@ -297,6 +310,17 @@ export const NotesScreen: React.FC = () => {
     }
   };
 
+  const getPreviewText = (content: string, maxLength: number = 100) => {
+    return content.length > maxLength 
+      ? content.substring(0, maxLength) + '...'
+      : content;
+  };
+
+  const getTagColor = (index: number) => {
+    const colorOptions = [theme.colors.primary, theme.colors.secondary, theme.colors.success, theme.colors.warning];
+    return colorOptions[index % colorOptions.length];
+  };
+
   const renderNote = ({ item: note }: { item: Note }) => (
     <Card style={styles.noteCard} shadow="sm">
       <TouchableOpacity onPress={() => handleEditNote(note)}>
@@ -308,7 +332,7 @@ export const NotesScreen: React.FC = () => {
             style={styles.deleteButton}
             onPress={() => handleDeleteNote(note.id)}
           >
-            <Ionicons name="trash-outline" size={16} color={colors.danger[500]} />
+            <Ionicons name="trash-outline" size={16} color="#ef4444" />
           </TouchableOpacity>
         </View>
         
@@ -319,7 +343,7 @@ export const NotesScreen: React.FC = () => {
           ]}
           numberOfLines={3}
         >
-          {note.content}
+          {getPreviewText(note.content)}
         </Text>
         
         <View style={styles.noteFooter}>
@@ -334,35 +358,84 @@ export const NotesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Search */}
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Notes</Text>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setEditorVisible(true)}
+        >
+          <Ionicons name="add" size={24} color={theme.colors.primary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={20} color={colors.gray[500]} />
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={20} color={theme.colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search notes..."
+            placeholderTextColor={theme.colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-          {searchQuery.length > 0 && (
+          {searchQuery !== '' && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={colors.gray[400]} />
+              <Ionicons name="close-circle" size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           )}
+        </View>
+
+        {/* Filter Buttons */}
+        <View style={styles.filterContainer}>
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              selectedFilter === 'all' && styles.filterButtonActive
+            ]}
+            onPress={() => setSelectedFilter('all')}
+          >
+            <Text style={[
+              styles.filterButtonText,
+              selectedFilter === 'all' && styles.filterButtonTextActive
+            ]}>
+              All
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              selectedFilter === 'favorites' && styles.filterButtonActive
+            ]}
+            onPress={() => setSelectedFilter('favorites')}
+          >
+            <Ionicons 
+              name="star" 
+              size={16} 
+              color={selectedFilter === 'favorites' ? '#ffffff' : theme.colors.textSecondary} 
+            />
+            <Text style={[
+              styles.filterButtonText,
+              selectedFilter === 'favorites' && styles.filterButtonTextActive
+            ]}>
+              Favorites
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
       {/* Notes List */}
       {filteredNotes.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="document-text-outline" size={64} color={colors.gray[400]} />
+          <Ionicons name="document-text-outline" size={64} color={theme.colors.textSecondary} />
           <Text style={styles.emptyStateTitle}>
-            {searchQuery ? 'No notes found' : 'No notes yet'}
+            {searchQuery !== '' ? 'No matching notes' : 'No notes yet'}
           </Text>
           <Text style={styles.emptyStateSubtitle}>
-            {searchQuery 
+            {searchQuery !== '' 
               ? 'Try adjusting your search terms'
-              : 'Create your first note to get started'
+              : 'Tap the + button to create your first note'
             }
           </Text>
           {!searchQuery && (
@@ -399,30 +472,73 @@ export const NotesScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+// Dynamic styles function that accepts theme
+const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.gray[50],
+    backgroundColor: theme.colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: isDark ? theme.colors.textSecondary + '20' : theme.colors.textSecondary + '10',
+  },
+  headerTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  addButton: {
+    padding: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: theme.colors.surface,
   },
   searchContainer: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.md,
-    backgroundColor: '#ffffff',
+    paddingVertical: spacing.md,
   },
-  searchInputContainer: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.gray[100],
+    backgroundColor: theme.colors.surface,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   searchInput: {
     flex: 1,
     fontSize: fontSize.base,
-    color: colors.gray[900],
+    color: theme.colors.text,
+    marginLeft: spacing.sm,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    backgroundColor: theme.colors.surface,
+    gap: spacing.xs,
+  },
+  filterButtonActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  filterButtonText: {
+    fontSize: fontSize.sm,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
+  filterButtonTextActive: {
+    color: '#ffffff',
   },
   notesList: {
     padding: spacing.lg,
@@ -440,7 +556,7 @@ const styles = StyleSheet.create({
   noteTitle: {
     fontSize: fontSize.lg,
     fontWeight: '600',
-    color: colors.gray[900],
+    color: theme.colors.text,
     flex: 1,
     marginRight: spacing.sm,
   },
@@ -458,7 +574,7 @@ const styles = StyleSheet.create({
   },
   noteDate: {
     fontSize: fontSize.xs,
-    color: colors.gray[500],
+    color: theme.colors.textSecondary,
   },
   noteFormat: {
     flexDirection: 'row',
@@ -467,7 +583,7 @@ const styles = StyleSheet.create({
   },
   noteFormatText: {
     fontSize: fontSize.xs,
-    color: colors.gray[500],
+    color: theme.colors.textSecondary,
   },
   colorIndicator: {
     width: 8,
@@ -483,13 +599,13 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: fontSize.xl,
     fontWeight: '600',
-    color: colors.gray[700],
+    color: theme.colors.text,
     marginTop: spacing.md,
     marginBottom: spacing.xs,
   },
   emptyStateSubtitle: {
     fontSize: fontSize.base,
-    color: colors.gray[500],
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: spacing.xl,
   },
@@ -499,7 +615,7 @@ const styles = StyleSheet.create({
   // Editor Styles
   editorContainer: {
     flex: 1,
-    backgroundColor: colors.gray[50],
+    backgroundColor: theme.colors.background,
   },
   editorHeader: {
     flexDirection: 'row',
@@ -508,44 +624,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
     paddingBottom: spacing.md,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: colors.gray[100],
+    borderBottomColor: isDark ? theme.colors.textSecondary + '20' : theme.colors.textSecondary + '10',
   },
   cancelButton: {
     fontSize: fontSize.base,
-    color: colors.gray[600],
+    color: theme.colors.textSecondary,
   },
   editorTitle: {
     fontSize: fontSize.lg,
     fontWeight: '600',
-    color: colors.gray[900],
+    color: theme.colors.text,
   },
   saveButton: {
     fontSize: fontSize.base,
     fontWeight: '600',
-    color: colors.primary[600],
+    color: theme.colors.primary,
   },
   titleSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.gray[100],
+    borderBottomColor: isDark ? theme.colors.textSecondary + '20' : theme.colors.textSecondary + '10',
   },
   titleInput: {
     fontSize: fontSize.xl,
     fontWeight: '600',
-    color: colors.gray[900],
+    color: theme.colors.text,
   },
   toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.gray[100],
+    borderBottomColor: isDark ? theme.colors.textSecondary + '20' : theme.colors.textSecondary + '10',
   },
   toolbarButton: {
     flexDirection: 'row',
@@ -556,16 +672,16 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   toolbarButtonActive: {
-    backgroundColor: colors.primary[100],
+    backgroundColor: theme.colors.primary,
   },
   toolbarButtonText: {
     fontSize: fontSize.sm,
-    color: colors.gray[600],
+    color: theme.colors.textSecondary,
   },
   toolbarSeparator: {
     width: 1,
     height: 20,
-    backgroundColor: colors.gray[300],
+    backgroundColor: isDark ? theme.colors.textSecondary + '20' : theme.colors.textSecondary + '10',
     marginHorizontal: spacing.md,
   },
   previewText: {
@@ -581,7 +697,7 @@ const styles = StyleSheet.create({
   formatLabel: {
     fontSize: fontSize.sm,
     fontWeight: '600',
-    color: colors.gray[700],
+    color: theme.colors.textSecondary,
     marginBottom: spacing.sm,
   },
   fontSizeScroll: {
@@ -593,18 +709,18 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colors.gray[300],
+    borderColor: isDark ? theme.colors.textSecondary + '20' : theme.colors.textSecondary + '10',
   },
   fontSizeOptionActive: {
-    borderColor: colors.primary[500],
-    backgroundColor: colors.primary[50],
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary + '10',
   },
   fontSizeText: {
     fontSize: fontSize.sm,
-    color: colors.gray[700],
+    color: theme.colors.text,
   },
   fontSizeTextActive: {
-    color: colors.primary[700],
+    color: theme.colors.primary,
     fontWeight: '600',
   },
   colorScroll: {
@@ -619,22 +735,22 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   colorOptionActive: {
-    backgroundColor: colors.gray[100],
+    backgroundColor: theme.colors.surface,
   },
   colorSwatch: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.gray[200],
+    borderColor: isDark ? theme.colors.textSecondary + '20' : theme.colors.textSecondary + '10',
   },
   colorName: {
     fontSize: fontSize.xs,
-    color: colors.gray[600],
+    color: theme.colors.textSecondary,
   },
   contentContainer: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.surface,
     margin: spacing.md,
     marginTop: 0,
     borderRadius: borderRadius.lg,
@@ -654,7 +770,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.primary[600],
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 8, // Android shadow

@@ -3,6 +3,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { Platform, View, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Import types
 import { RootStackParamList, MainTabParamList } from '../types';
@@ -22,58 +24,120 @@ import {
 
 // Import hooks and components
 import { useAuth } from '../hooks';
+import { useTheme } from '../hooks/useTheme';
 import { ProtectedRoute } from '../components';
-import { colors } from '../styles/theme';
+import { Text as ThemedText } from '../components/ui';
 
 const RootStack = createStackNavigator<RootStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
+
+// Custom Tab Bar Component
+const CustomTabBar = ({ state, descriptors, navigation }: any) => {
+  const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  const getIconName = (routeName: string, focused: boolean) => {
+    switch (routeName) {
+      case 'Dashboard':
+        return focused ? 'home' : 'home-outline';
+      case 'Calendar':
+        return focused ? 'calendar' : 'calendar-outline';
+      case 'CreateTask':
+        return focused ? 'add-circle' : 'add-circle-outline';
+      case 'Notes':
+        return focused ? 'document-text' : 'document-text-outline';
+      case 'Settings':
+        return focused ? 'settings' : 'settings-outline';
+      default:
+        return 'ellipse';
+    }
+  };
+
+  return (
+    <View 
+      style={[
+        styles.tabBarContainer, 
+        { 
+          paddingBottom: insets.bottom,
+          backgroundColor: theme.colors.surface,
+          borderTopColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+        }
+      ]}
+    >
+      <View style={styles.tabButtonsContainer}>
+          {state.routes.map((route: any, index: number) => {
+            const { options } = descriptors[route.key];
+            const label = options.tabBarLabel !== undefined 
+              ? options.tabBarLabel 
+              : options.title !== undefined 
+              ? options.title 
+              : route.name;
+
+            const isFocused = state.index === index;
+
+            const onPress = () => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
+
+            return (
+              <TouchableOpacity
+                key={route.key}
+                accessibilityRole="button"
+                accessibilityState={isFocused ? { selected: true } : {}}
+                accessibilityLabel={options.tabBarAccessibilityLabel}
+                testID={options.tabBarTestID}
+                onPress={onPress}
+                style={[
+                  styles.tabButton,
+                  isFocused && styles.tabButtonActive,
+                  isFocused && {
+                    backgroundColor: isDark 
+                      ? 'rgba(56, 189, 248, 0.2)' 
+                      : 'rgba(14, 165, 233, 0.1)',
+                  }
+                ]}
+              >
+                <Ionicons
+                  name={getIconName(route.name, isFocused) as any}
+                  size={24}
+                  color={isFocused ? theme.colors.primary : theme.colors.textSecondary}
+                />
+                <ThemedText
+                  variant="caption"
+                  weight="semibold"
+                  style={[
+                    styles.tabLabel,
+                    {
+                      color: isFocused ? theme.colors.primary : theme.colors.textSecondary,
+                    }
+                  ]}
+                >
+                  {label}
+                </ThemedText>
+              </TouchableOpacity>
+            );
+          })}
+      </View>
+    </View>
+  );
+};
 
 const MainTabNavigator = () => {
   return (
     <MainTab.Navigator
       initialRouteName="CreateTask"
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap;
-
-          switch (route.name) {
-            case 'Dashboard':
-              iconName = focused ? 'home' : 'home-outline';
-              break;
-            case 'Calendar':
-              iconName = focused ? 'calendar' : 'calendar-outline';
-              break;
-            case 'CreateTask':
-              iconName = focused ? 'add-circle' : 'add-circle-outline';
-              break;
-            case 'Notes':
-              iconName = focused ? 'document-text' : 'document-text-outline';
-              break;
-            case 'Settings':
-              iconName = focused ? 'settings' : 'settings-outline';
-              break;
-            default:
-              iconName = 'ellipse';
-          }
-
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: colors.primary[500],
-        tabBarInactiveTintColor: colors.gray[400],
-        tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopColor: colors.gray[200],
-          paddingTop: 12,
-          paddingBottom: 24,
-          height: 85,
-        },
-        tabBarLabelStyle: {
-          fontSize: 14,
-          fontWeight: '600',
-          marginBottom: 4,
-        },
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
         headerShown: false,
-      })}
+      }}
     >
       <MainTab.Screen name="Dashboard" component={DashboardScreen} />
       <MainTab.Screen name="Calendar" component={CalendarScreen} />
@@ -86,13 +150,14 @@ const MainTabNavigator = () => {
 
 const AppNavigator = () => {
   const { isAuthenticated, loading } = useAuth();
+  const { theme } = useTheme();
 
   return (
     <NavigationContainer>
       <RootStack.Navigator
         screenOptions={{
           headerShown: false,
-          cardStyle: { backgroundColor: '#ffffff' },
+          cardStyle: { backgroundColor: theme.colors.background },
         }}
       >
         {loading ? (
@@ -136,5 +201,48 @@ const AppNavigator = () => {
     </NavigationContainer>
   );
 };
+
+// Tab Bar styles
+const styles = StyleSheet.create({
+  tabBarContainer: {
+    flexDirection: 'row',
+    height: 85,
+    borderTopWidth: 1,
+    // Clean shadow for depth
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  tabButtonsContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingTop: 8,
+    paddingHorizontal: 16,
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: 12,
+    minHeight: 60,
+    backgroundColor: 'transparent',
+  },
+  tabButtonActive: {
+    // Active state styling
+    borderRadius: 12,
+  },
+  tabLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+});
 
 export default AppNavigator; 

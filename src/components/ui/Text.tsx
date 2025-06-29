@@ -38,9 +38,9 @@ export const Text: React.FC<TextProps> = ({
 
   const getTypographyStyle = (): TextStyle => {
     const baseStyle: TextStyle = {
-      fontFamily: fontFamily.primary,
+    fontFamily: fontFamily.primary,
       textAlign: align,
-    };
+  };
 
     // Typography variants
     switch (variant) {

@@ -1,313 +1,168 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
   SafeAreaView,
+  TouchableOpacity,
   Alert,
-  ActivityIndicator,
   Image,
-  Dimensions,
-  StatusBar
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { AntDesign } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../types';
-import { colors, fontSize, spacing, borderRadius, fontWeight } from '../styles/theme';
-import { useAuth } from '../hooks';
+import { fontSize, spacing, borderRadius } from '../styles/theme';
+import { useTheme } from '../hooks/useTheme';
 import { GoogleIcon } from '../components/ui';
+import { useAuth } from '../hooks/useAuth';
 
-type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
-
-interface Props {
-  navigation: LoginScreenNavigationProp;
+interface LoginScreenProps {
+  navigation?: any;
 }
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
+  const { theme, isDark } = useTheme();
+  const { signIn, loading: authLoading } = useAuth();
 
-export const LoginScreen: React.FC<Props> = ({ navigation }) => {
-  const { signIn, loading, error } = useAuth();
-  const [isSigningIn, setIsSigningIn] = useState(false);
+  // Create dynamic styles based on current theme
+  const styles = React.useMemo(() => createStyles(theme, isDark), [theme, isDark]);
 
   const handleGoogleSignIn = async () => {
     try {
-      setIsSigningIn(true);
-      const response = await signIn();
-      
-      if (response.success) {
-        navigation.replace('Main');
-      } else {
-        Alert.alert(
-          'Sign In Failed',
-          response.error || 'An error occurred during sign in. Please try again.',
-          [{ text: 'OK' }]
-        );
+      const result = await signIn();
+      if (!result.success) {
+        Alert.alert('Sign In Failed', result.error || 'Failed to sign in with Google');
       }
-    } catch (err) {
-      Alert.alert(
-        'Sign In Error',
-        'An unexpected error occurred. Please try again.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setIsSigningIn(false);
+      // Navigation will be handled by auth state change
+    } catch (error: any) {
+      Alert.alert('Sign In Failed', error.message || 'Failed to sign in with Google');
     }
   };
 
+
+
   return (
-    <>
-      <StatusBar barStyle="light-content" />
-      <LinearGradient
-        colors={['#667eea', '#764ba2']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.container}
-      >
-        {/* Background Pattern */}
-        <View style={styles.backgroundPattern}>
-          <View style={[styles.circle, styles.circle1]} />
-          <View style={[styles.circle, styles.circle2]} />
-          <View style={[styles.circle, styles.circle3]} />
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <Image 
+            source={require('../../assets/icon.png')} 
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
 
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.content}>
-            {/* Top Section with Illustration */}
-            <View style={styles.topSection}>
-              <Image 
-                source={require('../../assets/logout.png')} 
-                style={styles.illustration}
-                resizeMode="contain"
-              />
-              <Text style={styles.title}>Welcome to Callivate</Text>
-              <Text style={styles.subtitle}>
-                Transform your habits with AI-powered voice reminders and intelligent follow-ups
-              </Text>
-            </View>
+        {/* Welcome Text */}
+        <View style={styles.textContainer}>
+          <Text style={styles.welcomeText}>Welcome to Callivate</Text>
+          <Text style={styles.subtitleText}>
+            Sign in to continue with your AI reminder calls
+          </Text>
+        </View>
 
-            {/* Error Display */}
-            {error && (
-              <View style={styles.errorContainer}>
-                <AntDesign name="exclamationcircle" size={16} color={colors.danger[600]} />
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
+        {/* Google Sign In Button */}
+        <TouchableOpacity
+          style={styles.googleButton}
+          onPress={handleGoogleSignIn}
+          disabled={authLoading}
+          activeOpacity={0.8}
+        >
+          <GoogleIcon size={20} />
+          <Text style={styles.googleButtonText}>Continue with Google</Text>
+        </TouchableOpacity>
 
-            {/* Bottom Section */}
-            <View style={styles.bottomSection}>
-              {/* Features Preview */}
-              <View style={styles.featuresContainer}>
-                <View style={styles.feature}>
-                  <Text style={styles.featureIcon}>🔔</Text>
-                  <Text style={styles.featureText}>Smart Reminders</Text>
-                </View>
-                <View style={styles.feature}>
-                  <Text style={styles.featureIcon}>🔥</Text>
-                  <Text style={styles.featureText}>Streak Tracking</Text>
-                </View>
-                <View style={styles.feature}>
-                  <Text style={styles.featureIcon}>📊</Text>
-                  <Text style={styles.featureText}>Progress Analytics</Text>
-                </View>
-              </View>
-
-              {/* Auth Section */}
-              <View style={styles.authContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.googleButton,
-                    (loading || isSigningIn) && styles.buttonDisabled
-                  ]}
-                  onPress={handleGoogleSignIn}
-                  disabled={loading || isSigningIn}
-                  activeOpacity={0.9}
-                >
-                  {(loading || isSigningIn) ? (
-                    <ActivityIndicator color="#1f2937" size="small" />
-                  ) : (
-                    <>
-                      <View style={styles.googleIconContainer}>
-                        <GoogleIcon size={24} />
-                      </View>
-                      <Text style={styles.buttonText}>Continue with Google</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                <Text style={styles.termsText}>
-                  By continuing, you agree to our{' '}
-                  <Text style={styles.termsLink}>Terms of Service</Text>
-                  {' '}and{' '}
-                  <Text style={styles.termsLink}>Privacy Policy</Text>
-                </Text>
-              </View>
-            </View>
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
-    </>
+        {/* Terms and Privacy */}
+        <View style={styles.termsContainer}>
+          <Text style={styles.termsText}>
+            By continuing, you agree to our{' '}
+            <Text style={styles.linkText}>Terms of Service</Text>
+            {' '}and{' '}
+            <Text style={styles.linkText}>Privacy Policy</Text>
+          </Text>
+        </View>
+      </View>
+    </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
+// Dynamic styles function that accepts theme
+const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-  },
-  backgroundPattern: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  circle: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  circle1: {
-    width: 200,
-    height: 200,
-    top: -100,
-    right: -100,
-  },
-  circle2: {
-    width: 150,
-    height: 150,
-    bottom: 100,
-    left: -75,
-  },
-  circle3: {
-    width: 100,
-    height: 100,
-    top: screenHeight * 0.3,
-    right: 50,
-  },
-  safeArea: {
-    flex: 1,
+    backgroundColor: theme.colors.background,
   },
   content: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: spacing.xl,
-    justifyContent: 'space-between',
     paddingVertical: spacing.lg,
   },
-  topSection: {
+  logoContainer: {
     alignItems: 'center',
-    paddingTop: spacing.xl,
-    flex: 1,
-    justifyContent: 'center',
-  },
-  illustration: {
-    width: screenWidth * 0.6,
-    height: screenWidth * 0.6,
-    marginBottom: spacing.xl,
-  },
-  title: {
-    fontSize: fontSize['4xl'],
-    fontWeight: '800' as const,
-    color: '#ffffff',
-    textAlign: 'center',
-    marginBottom: spacing.md,
-    letterSpacing: -0.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  subtitle: {
-    fontSize: fontSize.lg,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    lineHeight: fontSize.lg * 1.5,
-    maxWidth: screenWidth * 0.8,
-    fontWeight: '400' as const,
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.9)',
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.md,
-  },
-  errorText: {
-    fontSize: fontSize.sm,
-    color: '#ffffff',
-    marginLeft: spacing.sm,
-    flex: 1,
-  },
-  bottomSection: {
-    paddingBottom: spacing.xl,
-  },
-  featuresContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
     marginBottom: spacing['2xl'],
-    paddingHorizontal: spacing.md,
   },
-  feature: {
+  logoImage: {
+    width: 120,
+    height: 120,
+  },
+  textContainer: {
     alignItems: 'center',
-    flex: 1,
+    marginBottom: spacing['2xl'],
   },
-  featureIcon: {
-    fontSize: 28,
-    marginBottom: spacing.xs,
-  },
-  featureText: {
-    fontSize: fontSize.sm,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
+  welcomeText: {
+    fontSize: fontSize['2xl'],
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
-  authContainer: {
-    alignItems: 'center',
+  subtitleText: {
+    fontSize: fontSize.base,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+    paddingHorizontal: spacing.md,
   },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    justifyContent: 'center',
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,
-    borderRadius: borderRadius.xl,
-    width: '100%',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    borderRadius: borderRadius.lg,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: isDark ? theme.colors.textSecondary + '30' : theme.colors.textSecondary + '20',
+    gap: spacing.md,
+    width: '100%',
+    maxWidth: 300,
+    marginBottom: spacing['2xl'],
+    // Shadow for better visual separation
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  buttonDisabled: {
-    opacity: 0.7,
+  googleButtonText: {
+    fontSize: fontSize.base,
+    fontWeight: '500',
+    color: theme.colors.text,
   },
-  buttonText: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    color: '#1f2937',
-    letterSpacing: 0.3,
+  termsContainer: {
+    position: 'absolute',
+    bottom: spacing.xl,
+    left: spacing.xl,
+    right: spacing.xl,
+    alignItems: 'center',
   },
   termsText: {
-    fontSize: fontSize.xs,
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: fontSize.sm,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
-    lineHeight: fontSize.xs * 1.5,
-    maxWidth: screenWidth * 0.8,
+    lineHeight: 20,
   },
-  termsLink: {
-    color: '#ffffff',
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
-  googleIconContainer: {
-    marginRight: spacing.md,
+  linkText: {
+    color: theme.colors.primary,
+    fontWeight: '500',
   },
 }); 

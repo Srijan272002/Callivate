@@ -2,6 +2,7 @@ import React from 'react';
 import {
   TouchableOpacity,
   Text,
+  View,
   ActivityIndicator,
   TouchableOpacityProps,
   ViewStyle,
@@ -224,15 +225,15 @@ export const Button: React.FC<ButtonProps> = ({
       ) : (
         <>
           {leftIcon && (
-            <Text style={{ marginRight: spacing.sm }}>
+            <View style={{ marginRight: spacing.sm }}>
               {leftIcon}
-            </Text>
+            </View>
           )}
           <Text style={getTextStyle()}>{title}</Text>
           {rightIcon && (
-            <Text style={{ marginLeft: spacing.sm }}>
+            <View style={{ marginLeft: spacing.sm }}>
               {rightIcon}
-            </Text>
+            </View>
           )}
         </>
       )}

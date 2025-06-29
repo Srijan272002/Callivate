@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { useAuth } from '../hooks';
-import { colors } from '../styles/theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,6 +9,7 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { loading, isAuthenticated } = useAuth();
+  const { theme } = useTheme();
 
   if (loading) {
     return (
@@ -16,9 +17,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#ffffff',
+        backgroundColor: theme.colors.background,
       }}>
-        <ActivityIndicator size="large" color={colors.primary[500]} />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }

@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colors, fontSize, spacing, borderRadius } from '../styles/theme';
+import { fontSize, spacing, borderRadius } from '../styles/theme';
+import { useTheme } from '../hooks/useTheme';
 import { Card, Badge, ProgressBar } from '../components/ui';
 import { MonthlyAnalytics } from '../types';
 
@@ -39,10 +40,10 @@ const mockWeeklyData = [
 ];
 
 const mockCategoryData = [
-  { category: 'Health & Fitness', completed: 12, total: 15, color: colors.success[500] },
-  { category: 'Learning', completed: 8, total: 10, color: colors.primary[500] },
-  { category: 'Personal', completed: 6, total: 6, color: colors.warning[500] },
-  { category: 'Work', completed: 2, total: 2, color: colors.secondary[500] },
+  { category: 'Health & Fitness', completed: 12, total: 15 },
+  { category: 'Learning', completed: 8, total: 10 },
+  { category: 'Personal', completed: 6, total: 6 },
+  { category: 'Work', completed: 2, total: 2 },
 ];
 
 const mockTimeSlots = [
@@ -63,8 +64,12 @@ const mockVoiceUsage = [
 
 export const AnalyticsScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { theme, isDark } = useTheme();
   const [selectedPeriod, setSelectedPeriod] = useState<'month' | 'week' | 'year'>('month');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // Create dynamic styles based on current theme
+  const styles = React.useMemo(() => createStyles(theme, isDark), [theme, isDark]);
 
   const totalTasks = mockAnalytics.tasksCompleted + mockAnalytics.tasksMissed;
 
@@ -84,7 +89,7 @@ export const AnalyticsScreen: React.FC = () => {
                     styles.bar,
                     {
                       height: (week.completed / maxValue) * chartHeight,
-                      backgroundColor: colors.success[500],
+                      backgroundColor: theme.colors.success,
                       width: barWidth / 2 - 2,
                     },
                   ]}
@@ -94,7 +99,7 @@ export const AnalyticsScreen: React.FC = () => {
                     styles.bar,
                     {
                       height: (week.missed / maxValue) * chartHeight,
-                      backgroundColor: colors.danger[500],
+                      backgroundColor: theme.colors.danger,
                       width: barWidth / 2 - 2,
                     },
                   ]}
@@ -107,16 +112,21 @@ export const AnalyticsScreen: React.FC = () => {
         
         <View style={styles.chartLegend}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.success[500] }]} />
+            <View style={[styles.legendDot, { backgroundColor: theme.colors.success }]} />
             <Text style={styles.legendText}>Completed</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.danger[500] }]} />
+            <View style={[styles.legendDot, { backgroundColor: theme.colors.danger }]} />
             <Text style={styles.legendText}>Missed</Text>
           </View>
         </View>
       </View>
     );
+  };
+
+  const getCategoryColor = (index: number) => {
+    const colors = [theme.colors.success, theme.colors.primary, theme.colors.warning, theme.colors.secondary];
+    return colors[index % colors.length];
   };
 
   return (
@@ -127,7 +137,7 @@ export const AnalyticsScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Ionicons name="chevron-back" size={24} color={colors.gray[600]} />
+          <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Analytics</Text>
         <Badge variant="info" size="sm">
@@ -148,7 +158,7 @@ export const AnalyticsScreen: React.FC = () => {
                 <ProgressBar
                   progress={mockAnalytics.completionRate}
                   height={4}
-                  color={colors.success[500]}
+                  color={theme.colors.success}
                 />
               </View>
             </View>
@@ -163,7 +173,7 @@ export const AnalyticsScreen: React.FC = () => {
               <Text style={styles.overviewNumber}>{mockAnalytics.longestStreak}</Text>
               <Text style={styles.overviewLabel}>Best Streak</Text>
               <View style={styles.overviewIcon}>
-                <Ionicons name="flame" size={16} color={colors.warning[500]} />
+                <Ionicons name="flame" size={16} color={theme.colors.warning} />
               </View>
             </View>
             
@@ -180,7 +190,7 @@ export const AnalyticsScreen: React.FC = () => {
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>Weekly Breakdown</Text>
             <TouchableOpacity>
-              <Ionicons name="information-circle-outline" size={20} color={colors.gray[500]} />
+              <Ionicons name="information-circle-outline" size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
           {renderChart()}
@@ -203,26 +213,24 @@ export const AnalyticsScreen: React.FC = () => {
                 )}
               >
                 <View style={styles.categoryInfo}>
-                  <View style={[styles.categoryColor, { backgroundColor: category.color }]} />
-                  <Text style={styles.categoryName}>{category.category}</Text>
+                  <View style={styles.categoryRow}>
+                    <View style={[styles.categoryDot, { backgroundColor: getCategoryColor(index) }]} />
+                    <Text style={styles.categoryName}>{category.category}</Text>
+                    <Text style={styles.categoryRatio}>
+                      {category.completed}/{category.total}
+                    </Text>
+                  </View>
+                  <View style={styles.categoryProgress}>
+                    <ProgressBar
+                      progress={(category.completed / category.total) * 100}
+                      height={6}
+                      color={getCategoryColor(index)}
+                    />
+                  </View>
                 </View>
-                
-                <View style={styles.categoryStats}>
-                  <Text style={styles.categoryStatsText}>
-                    {category.completed}/{category.total}
-                  </Text>
-                  <Text style={styles.categoryPercentage}>
-                    {Math.round((category.completed / category.total) * 100)}%
-                  </Text>
-                </View>
-                
-                <View style={styles.categoryProgress}>
-                  <ProgressBar
-                    progress={(category.completed / category.total) * 100}
-                    height={6}
-                    color={category.color}
-                  />
-                </View>
+                <Text style={styles.categoryPercentage}>
+                  {Math.round((category.completed / category.total) * 100)}%
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -231,7 +239,6 @@ export const AnalyticsScreen: React.FC = () => {
         {/* Time Analysis */}
         <Card style={styles.timeCard} shadow="md">
           <Text style={styles.cardTitle}>Peak Performance Times</Text>
-          <Text style={styles.cardSubtitle}>When you complete tasks most often</Text>
           
           <View style={styles.timeSlots}>
             {mockTimeSlots.map((slot, index) => (
@@ -241,10 +248,13 @@ export const AnalyticsScreen: React.FC = () => {
                   <Text style={styles.timeSlotCount}>{slot.count} tasks</Text>
                 </View>
                 <View style={styles.timeSlotBar}>
-                  <View
+                  <View 
                     style={[
-                      styles.timeSlotFill,
-                      { width: `${slot.percentage}%` }
+                      styles.timeSlotProgress,
+                      { 
+                        width: `${slot.percentage}%`,
+                        backgroundColor: theme.colors.primary + '60'
+                      }
                     ]}
                   />
                 </View>
@@ -256,66 +266,20 @@ export const AnalyticsScreen: React.FC = () => {
 
         {/* Voice Usage */}
         <Card style={styles.voiceCard} shadow="md">
-          <Text style={styles.cardTitle}>Voice Preferences</Text>
-          <Text style={styles.cardSubtitle}>Most used voice: {mockAnalytics.mostUsedVoice}</Text>
+          <Text style={styles.cardTitle}>Voice Usage Statistics</Text>
           
           <View style={styles.voiceList}>
             {mockVoiceUsage.map((voice, index) => (
               <View key={index} style={styles.voiceItem}>
                 <View style={styles.voiceInfo}>
-                  <Ionicons
-                    name={voice.voice === 'Silent Mode' ? 'notifications-off' : 'volume-high'}
-                    size={16}
-                    color={colors.gray[600]}
-                  />
                   <Text style={styles.voiceName}>{voice.voice}</Text>
+                  <Text style={styles.voiceUsage}>{voice.usage} times</Text>
                 </View>
-                
-                <View style={styles.voiceStats}>
-                  <Text style={styles.voiceUsageText}>{voice.usage} uses</Text>
-                  <View style={styles.voiceBar}>
-                    <View
-                      style={[
-                        styles.voiceBarFill,
-                        { width: `${voice.percentage}%` }
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.voicePercentage}>{voice.percentage}%</Text>
+                <View style={styles.voicePercentage}>
+                  <Text style={styles.voicePercentageText}>{voice.percentage}%</Text>
                 </View>
               </View>
             ))}
-          </View>
-        </Card>
-
-        {/* Insights & Recommendations */}
-        <Card style={styles.insightsCard} shadow="md">
-          <View style={styles.insightsHeader}>
-            <Ionicons name="bulb" size={24} color={colors.warning[500]} />
-            <Text style={styles.cardTitle}>Insights & Tips</Text>
-          </View>
-          
-          <View style={styles.insightsList}>
-            <View style={styles.insightItem}>
-              <Ionicons name="trending-up" size={16} color={colors.success[500]} />
-              <Text style={styles.insightText}>
-                Your completion rate improved by 12% this month!
-              </Text>
-            </View>
-            
-            <View style={styles.insightItem}>
-              <Ionicons name="time" size={16} color={colors.primary[500]} />
-              <Text style={styles.insightText}>
-                You're most productive in the morning (6-9 AM) and evening (6-9 PM).
-              </Text>
-            </View>
-            
-            <View style={styles.insightItem}>
-              <Ionicons name="fitness" size={16} color={colors.warning[500]} />
-              <Text style={styles.insightText}>
-                Health & Fitness tasks have the highest completion rate. Great job!
-              </Text>
-            </View>
           </View>
         </Card>
 
@@ -325,94 +289,83 @@ export const AnalyticsScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+// Dynamic styles function that accepts theme
+const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.gray[50],
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.md,
-    backgroundColor: '#ffffff',
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.gray[100],
+    borderBottomColor: isDark ? theme.colors.textSecondary + '20' : theme.colors.textSecondary + '10',
   },
   backButton: {
-    padding: spacing.xs,
-    marginRight: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: theme.colors.surface,
   },
   headerTitle: {
-    fontSize: fontSize['2xl'],
-    fontWeight: '700',
-    color: colors.gray[900],
+    fontSize: fontSize.xl,
+    fontWeight: '600',
+    color: theme.colors.text,
   },
   content: {
     flex: 1,
     padding: spacing.lg,
   },
   overviewCard: {
-    padding: spacing.lg,
     marginBottom: spacing.lg,
   },
   cardTitle: {
     fontSize: fontSize.lg,
     fontWeight: '600',
-    color: colors.gray[900],
-    marginBottom: spacing.md,
-  },
-  cardSubtitle: {
-    fontSize: fontSize.sm,
-    color: colors.gray[600],
-    marginBottom: spacing.md,
+    color: theme.colors.text,
+    marginBottom: spacing.lg,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   overviewGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.md,
+    gap: spacing.lg,
   },
   overviewItem: {
-    width: (width - spacing.lg * 2 - spacing.md) / 2,
+    flex: 1,
+    minWidth: '45%',
     alignItems: 'center',
-    padding: spacing.md,
-    backgroundColor: colors.gray[50],
-    borderRadius: borderRadius.lg,
   },
   overviewNumber: {
     fontSize: fontSize['2xl'],
     fontWeight: '700',
-    color: colors.gray[900],
-    marginBottom: spacing.xs / 2,
+    color: theme.colors.text,
+    marginBottom: spacing.xs,
   },
   overviewLabel: {
     fontSize: fontSize.sm,
-    color: colors.gray[600],
-    textAlign: 'center',
-    marginBottom: spacing.xs,
+    color: theme.colors.textSecondary,
+    marginBottom: spacing.sm,
   },
   overviewSubtext: {
     fontSize: fontSize.xs,
-    color: colors.gray[500],
-    textAlign: 'center',
+    color: theme.colors.textSecondary,
   },
   overviewProgress: {
     width: '100%',
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
   },
   overviewIcon: {
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
   },
   chartCard: {
-    padding: spacing.lg,
     marginBottom: spacing.lg,
   },
   chart: {
@@ -421,9 +374,10 @@ const styles = StyleSheet.create({
   chartBars: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    height: 140,
-    gap: spacing.sm,
-    marginBottom: spacing.md,
+    justifyContent: 'space-around',
+    height: 120,
+    width: '100%',
+    marginBottom: spacing.lg,
   },
   chartBar: {
     alignItems: 'center',
@@ -432,202 +386,160 @@ const styles = StyleSheet.create({
   barContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 2,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   bar: {
-    borderRadius: 2,
-    minHeight: 4,
+    borderRadius: borderRadius.sm,
+    marginHorizontal: 1,
   },
   chartLabel: {
     fontSize: fontSize.xs,
-    color: colors.gray[600],
-    textAlign: 'center',
+    color: theme.colors.textSecondary,
   },
   chartLegend: {
     flexDirection: 'row',
-    gap: spacing.md,
+    justifyContent: 'center',
+    gap: spacing.lg,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
   },
   legendDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
+    marginRight: spacing.xs,
   },
   legendText: {
     fontSize: fontSize.sm,
-    color: colors.gray[600],
+    color: theme.colors.textSecondary,
   },
   categoryCard: {
-    padding: spacing.lg,
     marginBottom: spacing.lg,
   },
   categoryList: {
     gap: spacing.md,
   },
   categoryItem: {
-    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: theme.colors.surface,
     borderRadius: borderRadius.lg,
-    backgroundColor: colors.gray[50],
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   categoryItemSelected: {
-    backgroundColor: colors.primary[50],
-    borderWidth: 1,
-    borderColor: colors.primary[200],
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary + '10',
   },
   categoryInfo: {
+    flex: 1,
+  },
+  categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  categoryColor: {
+  categoryDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    marginRight: spacing.sm,
+    marginRight: spacing.md,
   },
   categoryName: {
+    flex: 1,
     fontSize: fontSize.base,
     fontWeight: '500',
-    color: colors.gray[900],
-    flex: 1,
+    color: theme.colors.text,
   },
-  categoryStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
-  },
-  categoryStatsText: {
+  categoryRatio: {
     fontSize: fontSize.sm,
-    color: colors.gray[600],
-  },
-  categoryPercentage: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-    color: colors.gray[700],
+    color: theme.colors.textSecondary,
   },
   categoryProgress: {
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  categoryPercentage: {
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginLeft: spacing.md,
   },
   timeCard: {
-    padding: spacing.lg,
     marginBottom: spacing.lg,
   },
   timeSlots: {
     gap: spacing.md,
   },
   timeSlot: {
-    gap: spacing.xs,
+    paddingVertical: spacing.sm,
   },
   timeSlotHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   timeSlotTime: {
-    fontSize: fontSize.sm,
+    fontSize: fontSize.base,
     fontWeight: '500',
-    color: colors.gray[700],
+    color: theme.colors.text,
   },
   timeSlotCount: {
-    fontSize: fontSize.xs,
-    color: colors.gray[500],
+    fontSize: fontSize.sm,
+    color: theme.colors.textSecondary,
   },
   timeSlotBar: {
-    height: 8,
-    backgroundColor: colors.gray[200],
-    borderRadius: 4,
-    overflow: 'hidden',
+    height: 6,
+    backgroundColor: isDark ? theme.colors.textSecondary + '20' : theme.colors.textSecondary + '10',
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.xs,
   },
-  timeSlotFill: {
+  timeSlotProgress: {
     height: '100%',
-    backgroundColor: colors.primary[500],
-    borderRadius: 4,
+    borderRadius: borderRadius.sm,
   },
   timeSlotPercentage: {
     fontSize: fontSize.xs,
-    color: colors.gray[500],
+    color: theme.colors.textSecondary,
     textAlign: 'right',
   },
   voiceCard: {
-    padding: spacing.lg,
     marginBottom: spacing.lg,
   },
   voiceList: {
     gap: spacing.md,
   },
   voiceItem: {
-    gap: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
   },
   voiceInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    flex: 1,
   },
   voiceName: {
-    fontSize: fontSize.sm,
+    fontSize: fontSize.base,
     fontWeight: '500',
-    color: colors.gray[700],
+    color: theme.colors.text,
+    marginBottom: spacing.xs / 2,
   },
-  voiceStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  voiceUsageText: {
-    fontSize: fontSize.xs,
-    color: colors.gray[500],
-    width: 60,
-  },
-  voiceBar: {
-    flex: 1,
-    height: 6,
-    backgroundColor: colors.gray[200],
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  voiceBarFill: {
-    height: '100%',
-    backgroundColor: colors.secondary[500],
-    borderRadius: 3,
+  voiceUsage: {
+    fontSize: fontSize.sm,
+    color: theme.colors.textSecondary,
   },
   voicePercentage: {
-    fontSize: fontSize.xs,
-    color: colors.gray[500],
-    width: 30,
-    textAlign: 'right',
+    marginLeft: spacing.md,
   },
-  insightsCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  insightsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  insightsList: {
-    gap: spacing.md,
-  },
-  insightItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    padding: spacing.sm,
-    backgroundColor: colors.gray[50],
-    borderRadius: borderRadius.md,
-  },
-  insightText: {
-    fontSize: fontSize.sm,
-    color: colors.gray[700],
-    flex: 1,
-    lineHeight: fontSize.sm * 1.4,
+  voicePercentageText: {
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
   bottomSpacing: {
     height: spacing.xl,

@@ -9,13 +9,25 @@ import {
   GowunDodum_400Regular,
 } from '@expo-google-fonts/gowun-dodum';
 import { AuthProvider } from './src/hooks/useAuth';
-import { ThemeProvider } from './src/hooks/useTheme';
+import { ThemeProvider, useTheme } from './src/hooks/useTheme';
 import AppNavigator from './src/navigation/AppNavigator';
 import './src/styles/globalStyles'; // Apply global font styles
 import { NotificationService, OfflineService, TaskService } from './src/services';
 
 // Prevent the splash screen from auto-hiding before App component declaration
 SplashScreen.preventAutoHideAsync();
+
+// Create a wrapper component to access theme context
+const AppContent: React.FC = () => {
+  const { isDark } = useTheme();
+  
+  return (
+    <>
+      <AppNavigator />
+      <StatusBar style={isDark ? "light" : "dark"} />
+    </>
+  );
+};
 
 export default function App() {
   const [fontLoaded, setFontLoaded] = useState(false);
@@ -83,8 +95,7 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
-          <AppNavigator />
-          <StatusBar style="auto" />
+          <AppContent />
         </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
-import { spacing, borderRadius } from '../styles/theme';
+import { spacing, borderRadius, fontSize } from '../styles/theme';
 import { Card, Button, Badge, Text, ThemeToggle } from '../components/ui';
 import { Voice, UserSettings } from '../types';
 import { useAuth } from '../hooks/useAuth';
@@ -182,280 +182,428 @@ const VoiceSelectionModal: React.FC<VoiceSelectionModalProps> = ({
   );
 };
 
-export const SettingsScreen: React.FC = () => {
-  const { signOut, user } = useAuth();
-  const { theme } = useTheme();
-  const [settings, setSettings] = useState<UserSettings>(mockSettings);
-  const [voiceModalVisible, setVoiceModalVisible] = useState(false);
+interface SettingsScreenProps {
+  navigation?: any;
+}
 
-  const selectedVoice = mockVoices.find(v => v.id === settings.defaultVoiceId);
+interface SettingItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  icon: string;
+  type: 'navigation' | 'toggle' | 'action';
+  value?: boolean;
+  onPress?: () => void;
+  onToggle?: (value: boolean) => void;
+  destructive?: boolean;
+}
 
-  const handleToggleSetting = (key: keyof UserSettings, value: boolean | string) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-  };
+export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
+  const { theme, isDark } = useTheme();
+  const { signOut, user, signingOut } = useAuth();
+  
+  // Local settings state
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
 
-  const handleVoiceSelection = (voiceId: string) => {
-    handleToggleSetting('defaultVoiceId', voiceId);
-  };
+  // Create dynamic styles based on current theme
+  const styles = React.useMemo(() => createStyles(theme, isDark), [theme, isDark]);
 
-  const handleClearCallHistory = () => {
+  const handleSignOut = async () => {
     Alert.alert(
-      'Clear Call History',
-      'This will permanently delete all your call history and recordings. This action cannot be undone.',
+      'Sign Out',
+      'Are you sure you want to sign out?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Clear',
+          text: 'Sign Out',
           style: 'destructive',
-          onPress: () => {
-            Alert.alert('Success', 'Call history has been cleared.');
+          onPress: async () => {
+            try {
+              await signOut();
+              // Navigation will be handled by auth state change
+            } catch (error) {
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
           },
         },
       ]
     );
   };
 
-  const handleResetStreaks = () => {
-    Alert.alert(
-      'Reset Streaks',
-      'This will reset all your streaks to zero. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
+  const settingSections = [
+    {
+      title: 'Account',
+      items: [
         {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Success', 'All streaks have been reset.');
-          },
+          id: 'profile',
+          title: 'Profile Settings',
+          subtitle: 'Manage your account information',
+          icon: 'person-outline',
+          type: 'navigation' as const,
+          onPress: () => console.log('Navigate to profile'),
         },
-      ]
-    );
-  };
-
-  const handleDeleteAllNotes = () => {
-    Alert.alert(
-      'Delete All Notes',
-      'This will permanently delete all your notes. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Success', 'All notes have been deleted.');
-          },
+          id: 'subscription',
+          title: 'Subscription',
+          subtitle: 'Manage your premium features',
+          icon: 'diamond-outline',
+          type: 'navigation' as const,
+          onPress: () => console.log('Navigate to subscription'),
         },
-      ]
-    );
-  };
-
-  const handleExportData = () => {
-    Alert.alert(
-      'Export Data',
-      'Your data will be prepared for export. You will receive a download link via email.',
-      [{ text: 'OK' }]
-    );
-  };
-
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete Account',
-      'This will permanently delete your account and all associated data. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
+      ],
+    },
+    {
+      title: 'Notifications',
+      items: [
         {
-          text: 'Delete Account',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Account Deleted', 'Your account has been permanently deleted.');
-            signOut();
-          },
+          id: 'notifications',
+          title: 'Push Notifications',
+          subtitle: 'Receive reminders and updates',
+          icon: 'notifications-outline',
+          type: 'toggle' as const,
+          value: notificationsEnabled,
+          onToggle: setNotificationsEnabled,
         },
-      ]
+        {
+          id: 'sound',
+          title: 'Sound Effects',
+          subtitle: 'Play sounds for interactions',
+          icon: 'volume-high-outline',
+          type: 'toggle' as const,
+          value: soundEnabled,
+          onToggle: setSoundEnabled,
+        },
+      ],
+    },
+    {
+      title: 'Privacy',
+      items: [
+        {
+          id: 'analytics',
+          title: 'Analytics & Improvement',
+          subtitle: 'Help us improve the app',
+          icon: 'analytics-outline',
+          type: 'toggle' as const,
+          value: analyticsEnabled,
+          onToggle: setAnalyticsEnabled,
+        },
+        {
+          id: 'data',
+          title: 'Data & Privacy',
+          subtitle: 'Manage your data preferences',
+          icon: 'shield-checkmark-outline',
+          type: 'navigation' as const,
+          onPress: () => console.log('Navigate to privacy'),
+        },
+      ],
+    },
+    {
+      title: 'Support',
+      items: [
+        {
+          id: 'help',
+          title: 'Help & Support',
+          subtitle: 'Get help and contact support',
+          icon: 'help-circle-outline',
+          type: 'navigation' as const,
+          onPress: () => console.log('Navigate to help'),
+        },
+        {
+          id: 'feedback',
+          title: 'Send Feedback',
+          subtitle: 'Share your thoughts and suggestions',
+          icon: 'chatbubble-outline',
+          type: 'navigation' as const,
+          onPress: () => console.log('Navigate to feedback'),
+        },
+        {
+          id: 'about',
+          title: 'About Callivate',
+          subtitle: 'Version 1.0.0',
+          icon: 'information-circle-outline',
+          type: 'navigation' as const,
+          onPress: () => console.log('Navigate to about'),
+        },
+      ],
+    },
+  ];
+
+  const renderSettingItem = (item: SettingItem) => {
+    return (
+      <TouchableOpacity
+        key={item.id}
+        style={[
+          styles.settingItem,
+          item.destructive && styles.destructiveItem
+        ]}
+        onPress={item.type === 'navigation' ? item.onPress : undefined}
+        disabled={item.type === 'toggle'}
+      >
+        <View style={styles.settingLeft}>
+          <View style={[
+            styles.settingIcon,
+            item.destructive && styles.destructiveIcon
+          ]}>
+            <Ionicons 
+              name={item.icon as any} 
+              size={22} 
+              color={item.destructive ? theme.colors.danger : theme.colors.primary} 
+            />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={[
+              styles.settingTitle,
+              item.destructive && styles.destructiveText
+            ]}>
+              {item.title}
+            </Text>
+            {item.subtitle && (
+              <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.settingRight}>
+          {item.type === 'toggle' && (
+            <Switch
+              value={item.value}
+              onValueChange={item.onToggle}
+              trackColor={{ 
+                false: isDark ? theme.colors.textSecondary + '30' : theme.colors.textSecondary + '20', 
+                true: theme.colors.primary + '50' 
+              }}
+              thumbColor={item.value ? theme.colors.primary : (isDark ? '#ffffff' : '#f4f3f4')}
+            />
+          )}
+          {item.type === 'navigation' && (
+            <Ionicons 
+              name="chevron-forward" 
+              size={20} 
+              color={theme.colors.textSecondary} 
+            />
+          )}
+        </View>
+      </TouchableOpacity>
     );
   };
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    content: {
-      flex: 1,
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.md,
-    },
-    sectionTitle: {
-      marginTop: spacing.xl,
-      marginBottom: spacing.md,
-    },
-    settingRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingVertical: spacing.sm,
-    },
-    userInfo: {
-      alignItems: 'center',
-      paddingVertical: spacing.lg,
-    },
-    avatar: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: theme.colors.primary + '20',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: spacing.md,
-    },
-  });
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* User Profile Section */}
-        <Card animated shadow="lg" style={{ marginBottom: spacing.lg }}>
-          <View style={styles.userInfo}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={40} color={theme.colors.primary} />
-            </View>
-            <Text variant="h5" color="text" style={{ marginBottom: 4 }}>
-              {user?.name || user?.email?.split('@')[0] || 'User'}
-            </Text>
-            <Text variant="bodySmall" color="textSecondary">
-              {user?.email}
-            </Text>
-          </View>
-        </Card>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Settings</Text>
+      </View>
 
-        {/* Appearance Section */}
-        <Text variant="h6" color="text" style={styles.sectionTitle}>
-          Appearance
-        </Text>
-        <Card animated animationDelay={100} shadow="md" style={{ marginBottom: spacing.lg }}>
-          <View style={styles.settingRow}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* User Info Card */}
+        {user && (
+          <Card style={styles.userCard} shadow="md">
+            <View style={styles.userInfo}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </Text>
+              </View>
+              <View style={styles.userDetails}>
+                <Text style={styles.userName}>{user.name || 'User'}</Text>
+                <Text style={styles.userEmail}>{user.email}</Text>
+              </View>
+            </View>
+          </Card>
+        )}
+
+        {/* Theme Toggle */}
+        <Card style={styles.themeCard} shadow="sm">
+          <View style={styles.themeSection}>
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <Ionicons 
+                  name={isDark ? "moon" : "sunny"} 
+                  size={22} 
+                  color={theme.colors.primary} 
+                />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingTitle}>Appearance</Text>
+                <Text style={styles.settingSubtitle}>
+                  {isDark ? 'Dark mode' : 'Light mode'}
+                </Text>
+              </View>
+            </View>
             <ThemeToggle />
           </View>
         </Card>
 
-        {/* Voice & Notifications */}
-        <Text variant="h6" color="text" style={styles.sectionTitle}>
-          Voice & Notifications
-        </Text>
-        <Card animated animationDelay={200} shadow="md" style={{ marginBottom: spacing.lg }}>
-          <TouchableOpacity
-            style={styles.settingRow}
-            onPress={() => setVoiceModalVisible(true)}
-          >
-            <View>
-              <Text variant="body" color="text">Default Voice</Text>
-              <Text variant="bodySmall" color="textSecondary">
-                {selectedVoice?.name || 'Select voice'}
-              </Text>
+        {/* Settings Sections */}
+        {settingSections.map((section, sectionIndex) => (
+          <Card key={section.title} style={styles.sectionCard} shadow="sm">
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <View style={styles.sectionContent}>
+              {section.items.map((item, itemIndex) => (
+                <View key={item.id}>
+                  {renderSettingItem(item)}
+                  {itemIndex < section.items.length - 1 && (
+                    <View style={styles.separator} />
+                  )}
+                </View>
+              ))}
             </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
+          </Card>
+        ))}
 
-          <View style={[styles.settingRow, { borderTopWidth: 1, borderTopColor: theme.colors.textSecondary + '10' }]}>
-            <View>
-              <Text variant="body" color="text">Push Notifications</Text>
-              <Text variant="bodySmall" color="textSecondary">
-                Get notified about reminders
-              </Text>
-            </View>
-            <Switch
-              value={settings.enableNotifications}
-              onValueChange={(value) => handleToggleSetting('enableNotifications', value)}
-              trackColor={{ false: theme.colors.textSecondary + '30', true: theme.colors.primary + '50' }}
-              thumbColor={settings.enableNotifications ? theme.colors.primary : '#f4f3f4'}
-            />
-          </View>
-
-          <View style={[styles.settingRow, { borderTopWidth: 1, borderTopColor: theme.colors.textSecondary + '10' }]}>
-            <View>
-              <Text variant="body" color="text">Silent Mode</Text>
-              <Text variant="bodySmall" color="textSecondary">
-                Use notifications instead of calls
-              </Text>
-            </View>
-            <Switch
-              value={settings.enableSilentMode}
-              onValueChange={(value) => handleToggleSetting('enableSilentMode', value)}
-              trackColor={{ false: theme.colors.textSecondary + '30', true: theme.colors.primary + '50' }}
-              thumbColor={settings.enableSilentMode ? theme.colors.primary : '#f4f3f4'}
-            />
-          </View>
-        </Card>
-
-        {/* Data & Privacy */}
-        <Text variant="h6" color="text" style={styles.sectionTitle}>
-          Data & Privacy
-        </Text>
-        <Card animated animationDelay={300} shadow="md" style={{ marginBottom: spacing.lg }}>
+        {/* Sign Out Button */}
+        <Card style={styles.signOutCard} shadow="sm">
           <Button
-            title="Clear Call History"
-            variant="outline"
-            size="md"
-            onPress={handleClearCallHistory}
-            style={{ marginBottom: spacing.md }}
-            accessibilityHint="Clears all call history and recordings"
-          />
-          <Button
-            title="Reset Streaks"
-            variant="outline"
-            size="md"
-            onPress={handleResetStreaks}
-            style={{ marginBottom: spacing.md }}
-            accessibilityHint="Resets all achievement streaks to zero"
-          />
-          <Button
-            title="Delete All Notes"
-            variant="outline"
-            size="md"
-            onPress={handleDeleteAllNotes}
-            style={{ marginBottom: spacing.md }}
-            accessibilityHint="Permanently deletes all saved notes"
-          />
-          <Button
-            title="Export Data"
-            variant="outline"
-            size="md"
-            onPress={handleExportData}
-            accessibilityHint="Downloads a copy of your data"
-          />
-        </Card>
-
-        {/* Account Actions */}
-        <Text variant="h6" color="text" style={styles.sectionTitle}>
-          Account
-        </Text>
-        <Card animated animationDelay={400} shadow="md" style={{ marginBottom: spacing.xl }}>
-          <Button
-            title="Sign Out"
-            variant="outline"
-            size="md"
-            onPress={signOut}
-            style={{ marginBottom: spacing.md }}
-            leftIcon={<Ionicons name="log-out-outline" size={18} color={theme.colors.textSecondary} />}
-            accessibilityHint="Signs out of your account"
-          />
-          <Button
-            title="Delete Account"
+            title={signingOut ? "Signing Out..." : "Sign Out"}
+            onPress={handleSignOut}
+            loading={signingOut}
+            disabled={signingOut}
             variant="danger"
-            size="md"
-            onPress={handleDeleteAccount}
-            leftIcon={<Ionicons name="trash-outline" size={18} color="#ffffff" />}
-            accessibilityHint="Permanently deletes your account and all data"
+            size="lg"
+            fullWidth
           />
         </Card>
-      </ScrollView>
 
-      <VoiceSelectionModal
-        visible={voiceModalVisible}
-        onClose={() => setVoiceModalVisible(false)}
-        selectedVoiceId={settings.defaultVoiceId}
-        onSelectVoice={handleVoiceSelection}
-      />
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
     </SafeAreaView>
   );
-}; 
+};
+
+// Dynamic styles function that accepts theme
+const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: isDark ? theme.colors.textSecondary + '20' : theme.colors.textSecondary + '10',
+  },
+  headerTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  content: {
+    flex: 1,
+    padding: spacing.lg,
+  },
+  userCard: {
+    marginBottom: spacing.lg,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.lg,
+  },
+  avatarText: {
+    fontSize: fontSize.xl,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  userDetails: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: spacing.xs / 2,
+  },
+  userEmail: {
+    fontSize: fontSize.base,
+    color: theme.colors.textSecondary,
+  },
+  themeCard: {
+    marginBottom: spacing.lg,
+  },
+  themeSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sectionCard: {
+    marginBottom: spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: fontSize.base,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: spacing.md,
+  },
+  sectionContent: {
+    gap: 0,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.md,
+  },
+  destructiveItem: {
+    backgroundColor: theme.colors.danger + '10',
+  },
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  settingIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  destructiveIcon: {
+    backgroundColor: theme.colors.danger + '20',
+  },
+  settingContent: {
+    flex: 1,
+  },
+  settingTitle: {
+    fontSize: fontSize.base,
+    fontWeight: '500',
+    color: theme.colors.text,
+    marginBottom: spacing.xs / 2,
+  },
+  destructiveText: {
+    color: theme.colors.danger,
+  },
+  settingSubtitle: {
+    fontSize: fontSize.sm,
+    color: theme.colors.textSecondary,
+  },
+  settingRight: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: isDark ? theme.colors.textSecondary + '20' : theme.colors.textSecondary + '10',
+    marginLeft: 56,
+  },
+  signOutCard: {
+    marginBottom: spacing.lg,
+  },
+  bottomSpacing: {
+    height: spacing.xl,
+  },
+}); 

@@ -1,8 +1,9 @@
 import React from 'react';
-import { Text, View, ViewStyle, TextStyle, TouchableOpacity } from 'react-native';
+import { View, ViewStyle, TextStyle, TouchableOpacity } from 'react-native';
 import Animated, { FadeIn, ZoomIn, BounceIn } from 'react-native-reanimated';
 import { useTheme } from '../../hooks/useTheme';
 import { spacing, fontSize, borderRadius } from '../../styles/theme';
+import { Text } from './Text';
 
 const AnimatedView = Animated.createAnimatedComponent(View);
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);

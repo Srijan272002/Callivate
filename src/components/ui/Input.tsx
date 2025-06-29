@@ -285,8 +285,8 @@ export const Input: React.FC<InputProps> = ({
         <AnimatedView
           entering={FadeInDown.springify()}
         >
-          <Text style={getErrorStyle()}>
-            {error}
+        <Text style={getErrorStyle()}>
+          {error}
           </Text>
         </AnimatedView>
       )}

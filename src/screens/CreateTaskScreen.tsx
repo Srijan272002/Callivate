@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { colors, fontSize, spacing, borderRadius } from '../styles/theme';
+import { fontSize, spacing, borderRadius } from '../styles/theme';
+import { useTheme } from '../hooks/useTheme';
 import { Button, Card } from '../components/ui';
 import { CreateTaskForm, Voice } from '../types';
 
@@ -25,7 +26,7 @@ interface CreateTaskScreenProps {
 }
 
 // Enhanced voices with personality
-const mockVoices: (Voice & { personality: string; avatar: string; color: string })[] = [
+const mockVoices: (Voice & { personality: string; avatar: string })[] = [
   { 
     id: '1', 
     name: 'Sarah', 
@@ -33,7 +34,6 @@ const mockVoices: (Voice & { personality: string; avatar: string; color: string 
     isCustom: false,
     personality: 'Friendly & Professional',
     avatar: '👩',
-    color: colors.primary[500]
   },
   { 
     id: '2', 
@@ -42,7 +42,6 @@ const mockVoices: (Voice & { personality: string; avatar: string; color: string 
     isCustom: false,
     personality: 'Calm & Steady',
     avatar: '👨',
-    color: colors.secondary[500]
   },
   { 
     id: '3', 
@@ -51,7 +50,6 @@ const mockVoices: (Voice & { personality: string; avatar: string; color: string 
     isCustom: false,
     personality: 'Gentle & Soothing',
     avatar: '🌙',
-    color: colors.success[500]
   },
   { 
     id: '4', 
@@ -60,13 +58,11 @@ const mockVoices: (Voice & { personality: string; avatar: string; color: string 
     isCustom: false,
     personality: 'Energetic & Motivating',
     avatar: '⚡',
-    color: colors.warning[500]
   },
 ];
 
-
-
 export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }) => {
+  const { theme, isDark } = useTheme();
   const [form, setForm] = useState<CreateTaskForm>({
     title: '',
     scheduledTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
@@ -85,6 +81,9 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
   // Animation values
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(50))[0];
+
+  // Create dynamic styles based on current theme
+  const styles = React.useMemo(() => createStyles(theme, isDark), [theme, isDark]);
 
   useEffect(() => {
     // Entrance animation
@@ -189,6 +188,11 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
     });
   };
 
+  const getVoiceColor = (index: number) => {
+    const colors = [theme.colors.primary, theme.colors.secondary, theme.colors.success, theme.colors.warning];
+    return colors[index % colors.length];
+  };
+
   const selectedVoice = mockVoices.find(v => v.id === form.voiceId);
 
   return (
@@ -199,253 +203,240 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
           <Text style={styles.headerTitle}>Schedule AI Reminder</Text>
           <Text style={styles.headerSubtitle}>Your personal reminder assistant</Text>
         </View>
+        <TouchableOpacity 
+          onPress={() => navigation?.goBack()}
+          style={styles.closeButton}
+        >
+          <Ionicons name="close" size={24} color={theme.colors.text} />
+        </TouchableOpacity>
       </View>
 
-      <Animated.View 
-        style={[
-          styles.animatedContainer,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
-          }
-        ]}
-      >
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Hero Task Input */}
-          <Card style={[styles.heroCard, titleFocused && styles.heroCardFocused]} shadow="lg">
-            <Text style={styles.heroLabel}>What would you like to be reminded about?</Text>
-            <TextInput
-              style={styles.heroInput}
-              placeholder="Call mom, Workout, Take medication..."
-              placeholderTextColor={colors.gray[400]}
-              value={form.title}
-              onChangeText={(text) => setForm(prev => ({ ...prev, title: text }))}
-              onFocus={() => setTitleFocused(true)}
-              onBlur={() => setTitleFocused(false)}
-              autoFocus={true}
-              multiline={true}
-              textAlignVertical="top"
-            />
-          </Card>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Task Title */}
+        <Card style={styles.titleCard} shadow="md">
+          <View style={styles.cardHeader}>
+            <Ionicons name="create-outline" size={20} color={theme.colors.primary} />
+            <Text style={styles.cardTitle}>What should we remind you about?</Text>
+          </View>
+          
+          <TextInput
+            style={[styles.titleInput, titleFocused && styles.titleInputFocused]}
+            placeholder="e.g., Take a break, Call mom, Go for a walk..."
+            placeholderTextColor={theme.colors.textSecondary}
+            value={form.title}
+            onChangeText={(title) => setForm(prev => ({ ...prev, title }))}
+            onFocus={() => setTitleFocused(true)}
+            onBlur={() => setTitleFocused(false)}
+            multiline
+            maxLength={100}
+          />
+          
+          <Text style={styles.characterCount}>
+            {form.title.length}/100 characters
+          </Text>
+        </Card>
 
-                     {/* Voice Selection - The Star Feature */}
-           <Card style={styles.voiceCardContainer} shadow="md">
-            <View style={styles.voiceHeader}>
-              <Text style={styles.voiceTitle}>🎙️ Your AI Caller</Text>
-              <Text style={styles.voiceSubtitle}>Choose who will remind you</Text>
-            </View>
-            
-                         <View style={styles.voiceList}>
-               {mockVoices.map((voice) => (
-                 <TouchableOpacity
-                   key={voice.id}
-                   style={[
-                     styles.voiceOption,
-                     form.voiceId === voice.id && !form.isSilentMode && styles.voiceOptionSelected
-                   ]}
-                   onPress={() => setForm(prev => ({ 
-                     ...prev, 
-                     voiceId: voice.id, 
-                     isSilentMode: false 
-                   }))}
-                 >
-                   <View style={styles.voiceOptionLeft}>
-                     <View style={[styles.voiceAvatarSmall, { backgroundColor: voice.color + '20' }]}>
-                       <Text style={styles.voiceEmojiSmall}>{voice.avatar}</Text>
-                     </View>
-                     <View style={styles.voiceInfo}>
-                       <View style={styles.voiceNameRow}>
-                         <Text style={styles.voiceName}>{voice.name}</Text>
-                         {voice.isDefault && (
-                           <View style={styles.defaultBadge}>
-                             <Text style={styles.defaultBadgeText}>Default</Text>
-                           </View>
-                         )}
-                       </View>
-                       <Text style={styles.voicePersonality}>{voice.personality}</Text>
-                     </View>
-                   </View>
-                   {form.voiceId === voice.id && !form.isSilentMode && (
-                     <Ionicons name="checkmark-circle" size={20} color={colors.primary[500]} />
-                   )}
-                 </TouchableOpacity>
-               ))}
-               
-               {/* Silent Mode Option */}
-               <TouchableOpacity
-                 style={[
-                   styles.voiceOption,
-                   form.isSilentMode && styles.voiceOptionSelected
-                 ]}
-                 onPress={() => setForm(prev => ({ ...prev, isSilentMode: true }))}
-               >
-                 <View style={styles.voiceOptionLeft}>
-                   <View style={[styles.voiceAvatarSmall, { backgroundColor: colors.gray[100] }]}>
-                     <Ionicons name="notifications-off" size={20} color={colors.gray[500]} />
-                   </View>
-                   <View style={styles.voiceInfo}>
-                     <Text style={styles.voiceName}>Silent Mode</Text>
-                     <Text style={styles.voicePersonality}>Notification only</Text>
-                   </View>
-                 </View>
-                 {form.isSilentMode && (
-                   <Ionicons name="checkmark-circle" size={20} color={colors.primary[500]} />
-                 )}
-               </TouchableOpacity>
-             </View>
-          </Card>
-
-          {/* Date & Time Selection */}
-          <Card style={styles.whenCard} shadow="md">
-            <View style={styles.cardHeader}>
-              <Ionicons name="time" size={20} color={colors.primary[500]} />
-              <Text style={styles.cardTitle}>When should we call?</Text>
-            </View>
-            
-            <View style={styles.dateTimeRow}>
-              <TouchableOpacity 
-                style={styles.dateTimeButton}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Ionicons name="calendar-outline" size={20} color={colors.primary[500]} />
-                <Text style={styles.dateTimeButtonText}>
-                  {formatDate(form.scheduledTime)}
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.dateTimeButton}
-                onPress={() => setShowTimePicker(true)}
-              >
-                <Ionicons name="time-outline" size={20} color={colors.primary[500]} />
-                <Text style={styles.dateTimeButtonText}>
-                  {formatTime(form.scheduledTime)}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Preview */}
-            <View style={styles.previewContainer}>
-              <Text style={styles.previewLabel}>You'll receive a call:</Text>
-              <Text style={styles.previewTime}>{formatDateTime(form.scheduledTime)}</Text>
-            </View>
-          </Card>
-
-          {/* Repeat Option */}
-          <Card style={styles.repeatCard} shadow="sm">
-            <View style={styles.repeatHeader}>
-              <View style={styles.repeatTitleContainer}>
-                <Ionicons name="copy-outline" size={20} color={colors.primary[500]} />
-                <View>
-                  <Text style={styles.repeatTitle}>Make it a habit</Text>
-                  <Text style={styles.repeatSubtitle}>Repeat this reminder</Text>
-                </View>
-              </View>
+        {/* Voice Selection */}
+        <Card style={styles.voiceCard} shadow="md">
+          <View style={styles.cardHeader}>
+            <Ionicons name="mic" size={20} color={theme.colors.primary} />
+            <Text style={styles.cardTitle}>Choose your AI assistant</Text>
+          </View>
+          
+          <View style={styles.voiceGrid}>
+            {mockVoices.map((voice, index) => (
               <TouchableOpacity
-                style={styles.modernToggle}
-                onPress={() => setForm(prev => ({ ...prev, isRecurring: !prev.isRecurring }))}
+                key={voice.id}
+                style={[
+                  styles.voiceOption,
+                  form.voiceId === voice.id && styles.voiceOptionSelected
+                ]}
+                onPress={() => setForm(prev => ({ ...prev, voiceId: voice.id, isSilentMode: false }))}
               >
-                <View style={[styles.toggleTrack, form.isRecurring && styles.toggleTrackActive]}>
-                  <Animated.View style={[styles.toggleThumb, form.isRecurring && styles.toggleThumbActive]} />
+                <View style={styles.voiceContent}>
+                  <View style={[styles.voiceAvatar, { backgroundColor: getVoiceColor(index) + '20' }]}>
+                    <Text style={styles.voiceAvatarText}>{voice.avatar}</Text>
+                  </View>
+                  <View style={styles.voiceInfo}>
+                    <Text style={styles.voiceName}>{voice.name}</Text>
+                    <Text style={styles.voicePersonality}>{voice.personality}</Text>
+                  </View>
                 </View>
+                {form.voiceId === voice.id && (
+                  <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+                )}
               </TouchableOpacity>
-            </View>
-
-            {form.isRecurring && (
-              <View style={styles.recurrenceOptions}>
-                {(['daily', 'weekly', 'custom'] as const).map((type) => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.recurrenceChip,
-                      form.recurrenceType === type && styles.recurrenceChipActive
-                    ]}
-                    onPress={() => setForm(prev => ({ ...prev, recurrenceType: type }))}
-                  >
-                    <Text style={[
-                      styles.recurrenceChipText,
-                      form.recurrenceType === type && styles.recurrenceChipTextActive
-                    ]}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+            ))}
+            
+            {/* Silent Mode Option */}
+            <TouchableOpacity
+              style={[
+                styles.voiceOption,
+                form.isSilentMode && styles.voiceOptionSelected
+              ]}
+              onPress={() => setForm(prev => ({ ...prev, isSilentMode: true, voiceId: undefined }))}
+            >
+              <View style={styles.voiceContent}>
+                <View style={[styles.voiceAvatar, { backgroundColor: theme.colors.textSecondary + '20' }]}>
+                  <Ionicons name="notifications-off" size={20} color={theme.colors.textSecondary} />
+                </View>
+                <View style={styles.voiceInfo}>
+                  <Text style={styles.voiceName}>Silent Mode</Text>
+                  <Text style={styles.voicePersonality}>Notification only</Text>
+                </View>
               </View>
-            )}
-          </Card>
+              {form.isSilentMode && (
+                <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </Card>
 
-          <View style={styles.bottomSpacing} />
-        </ScrollView>
-      </Animated.View>
+        {/* Date & Time Selection */}
+        <Card style={styles.whenCard} shadow="md">
+          <View style={styles.cardHeader}>
+            <Ionicons name="time" size={20} color={theme.colors.primary} />
+            <Text style={styles.cardTitle}>When should we call?</Text>
+          </View>
+          
+          <View style={styles.dateTimeRow}>
+            <TouchableOpacity 
+              style={styles.dateTimeButton}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
+              <Text style={styles.dateTimeButtonText}>
+                {formatDate(form.scheduledTime)}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.dateTimeButton}
+              onPress={() => setShowTimePicker(true)}
+            >
+              <Ionicons name="time-outline" size={20} color={theme.colors.primary} />
+              <Text style={styles.dateTimeButtonText}>
+                {formatTime(form.scheduledTime)}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-      {/* Bottom Actions */}
-      <View style={styles.bottomContainer}>
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => navigation?.goBack()}
-          >
-            <Text style={styles.secondaryButtonText}>Cancel</Text>
-          </TouchableOpacity>
+          <View style={styles.scheduledInfo}>
+            <Ionicons name="information-circle-outline" size={16} color={theme.colors.textSecondary} />
+            <Text style={styles.scheduledInfoText}>
+              Scheduled for {formatDateTime(form.scheduledTime)}
+            </Text>
+          </View>
+        </Card>
+
+        {/* Recurrence Options */}
+        <Card style={styles.recurrenceCard} shadow="md">
+          <View style={styles.cardHeader}>
+            <Ionicons name="repeat" size={20} color={theme.colors.primary} />
+            <Text style={styles.cardTitle}>Repeat this reminder?</Text>
+          </View>
           
           <TouchableOpacity
-            style={[
-              styles.primaryButton,
-              (!form.title.trim() || saving) && styles.primaryButtonDisabled
-            ]}
-            onPress={handleSave}
-            disabled={!form.title.trim() || saving}
+            style={styles.recurrenceToggle}
+            onPress={() => setForm(prev => ({ ...prev, isRecurring: !prev.isRecurring }))}
           >
-            {saving ? (
-              <Text style={styles.primaryButtonText}>Scheduling...</Text>
-            ) : (
-              <>
-                <Ionicons name="call" size={18} color="#ffffff" />
-                <Text style={styles.primaryButtonText}>Schedule AI Call</Text>
-              </>
-            )}
+            <View style={styles.recurrenceLeft}>
+              <Text style={styles.recurrenceLabel}>Make this a recurring reminder</Text>
+              <Text style={styles.recurrenceSubtext}>
+                Perfect for daily habits and routines
+              </Text>
+            </View>
+            <View style={[
+              styles.toggle,
+              form.isRecurring && styles.toggleActive
+            ]}>
+              <View style={[
+                styles.toggleKnob,
+                form.isRecurring && styles.toggleKnobActive
+              ]} />
+            </View>
           </TouchableOpacity>
+
+          {form.isRecurring && (
+            <View style={styles.recurrenceOptions}>
+              {['daily', 'weekly'].map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.recurrenceOption,
+                    form.recurrenceType === type && styles.recurrenceOptionSelected
+                  ]}
+                  onPress={() => setForm(prev => ({ 
+                    ...prev, 
+                    recurrenceType: type as 'daily' | 'weekly' | 'custom'
+                  }))}
+                >
+                  <Text style={[
+                    styles.recurrenceOptionText,
+                    form.recurrenceType === type && styles.recurrenceOptionTextSelected
+                  ]}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </Card>
+
+        {/* Save Button */}
+        <View style={styles.saveSection}>
+          <Button
+            title={saving ? "Scheduling..." : "Schedule Reminder"}
+            onPress={handleSave}
+            loading={saving}
+            disabled={!form.title.trim() || saving}
+            size="lg"
+            fullWidth
+          />
+          
+          <Text style={styles.saveSubtext}>
+            {selectedVoice?.name || 'AI'} will call you at the scheduled time
+          </Text>
         </View>
-      </View>
+      </ScrollView>
 
       {/* Date/Time Pickers */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={form.scheduledTime}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-          minimumDate={new Date()}
-        />
-      )}
-
       {showTimePicker && (
         <DateTimePicker
           value={form.scheduledTime}
           mode="time"
-          display="default"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={handleTimeChange}
+        />
+      )}
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={form.scheduledTime}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleDateChange}
+          minimumDate={new Date()}
         />
       )}
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
+// Dynamic styles function that accepts theme
+const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.gray[50],
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.md,
-    backgroundColor: '#ffffff',
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.gray[100],
+    borderBottomColor: isDark ? theme.colors.textSecondary + '20' : theme.colors.textSecondary + '10',
   },
   headerCenter: {
     flex: 1,
@@ -453,386 +444,224 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: fontSize.xl,
     fontWeight: '600',
-    color: colors.gray[900],
+    color: theme.colors.text,
   },
   headerSubtitle: {
-    fontSize: fontSize.base,
-    color: colors.gray[700],
+    fontSize: fontSize.sm,
+    color: theme.colors.textSecondary,
+    marginTop: spacing.xs / 2,
   },
-  animatedContainer: {
-    flex: 1,
+  closeButton: {
+    padding: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: theme.colors.surface,
   },
   content: {
     flex: 1,
     padding: spacing.lg,
   },
-  heroCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  heroCardFocused: {
-    borderColor: colors.primary[500],
-    borderWidth: 2,
-  },
-  heroLabel: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    color: colors.gray[900],
-    marginBottom: spacing.md,
-  },
-  heroInput: {
-    fontSize: fontSize.base,
-  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   cardTitle: {
+    fontSize: fontSize.base,
+    fontWeight: '500',
+    color: theme.colors.text,
+    marginLeft: spacing.md,
+  },
+  titleCard: {
+    marginBottom: spacing.lg,
+  },
+  titleInput: {
     fontSize: fontSize.lg,
-    fontWeight: '600',
-    color: colors.gray[900],
-    marginLeft: spacing.sm,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  titleInputFocused: {
+    borderColor: theme.colors.primary,
+  },
+  characterCount: {
+    fontSize: fontSize.xs,
+    color: theme.colors.textSecondary,
+    textAlign: 'right',
+    marginTop: spacing.sm,
   },
   voiceCard: {
-    padding: spacing.lg,
     marginBottom: spacing.lg,
-  },
-  voiceHeader: {
-    marginBottom: spacing.md,
-  },
-  voiceTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    color: colors.gray[900],
-  },
-  voiceSubtitle: {
-    fontSize: fontSize.base,
-    color: colors.gray[700],
   },
   voiceGrid: {
-    flexDirection: 'row',
     gap: spacing.md,
-  },
-  voiceCardContainer: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  voiceCardItem: {
-    flex: 1,
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.gray[200],
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-  },
-  voiceCardSelected: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[300],
-  },
-  silentCard: {
-    backgroundColor: colors.gray[50],
-  },
-  voiceAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  voiceEmoji: {
-    fontSize: 24,
-  },
-  voiceName: {
-    fontSize: fontSize.base,
-    color: colors.gray[700],
-    fontWeight: '500',
-  },
-  voicePersonality: {
-    fontSize: fontSize.sm,
-    color: colors.gray[500],
-  },
-  defaultBadge: {
-    backgroundColor: colors.primary[100],
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-    marginLeft: spacing.xs,
-  },
-  defaultBadgeText: {
-    fontSize: fontSize.xs,
-    color: colors.primary[700],
-    fontWeight: '500',
-  },
-  selectedIndicator: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  whenCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  whenTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    color: colors.gray[900],
-    marginBottom: spacing.md,
-  },
-  suggestionsContainer: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  suggestionChip: {
-    padding: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.gray[100],
-  },
-  suggestionEmoji: {
-    fontSize: 20,
-    marginRight: spacing.xs,
-  },
-  suggestionText: {
-    fontSize: fontSize.base,
-    color: colors.gray[700],
-    fontWeight: '500',
-  },
-  customTimeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.gray[100],
-  },
-  customTimeLabel: {
-    fontSize: fontSize.base,
-    color: colors.gray[700],
-    fontWeight: '500',
-  },
-  customTimeContainer: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.sm,
-  },
-  dateTimeSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  dateTimeText: {
-    fontSize: fontSize.base,
-    color: colors.gray[700],
-    fontWeight: '500',
-  },
-  previewContainer: {
-    marginTop: spacing.md,
-  },
-  previewLabel: {
-    fontSize: fontSize.base,
-    color: colors.gray[700],
-    fontWeight: '500',
-  },
-  previewTime: {
-    fontSize: fontSize.lg,
-    color: colors.gray[900],
-    fontWeight: '600',
-  },
-  repeatCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  repeatHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  repeatTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  repeatTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    color: colors.gray[900],
-  },
-  repeatSubtitle: {
-    fontSize: fontSize.base,
-    color: colors.gray[700],
-  },
-  modernToggle: {
-    padding: 4,
-  },
-  toggleTrack: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.gray[300],
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  toggleTrackActive: {
-    backgroundColor: colors.primary[500],
-  },
-  toggleThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  toggleThumbActive: {
-    transform: [{ translateX: 20 }],
-  },
-  recurrenceOptions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  recurrenceChip: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.gray[300],
-    alignItems: 'center',
-  },
-  recurrenceChipActive: {
-    borderColor: colors.primary[500],
-    backgroundColor: colors.primary[50],
-  },
-  recurrenceChipText: {
-    fontSize: fontSize.sm,
-    color: colors.gray[700],
-    fontWeight: '500',
-  },
-  recurrenceChipTextActive: {
-    color: colors.primary[700],
-  },
-  bottomSpacing: {
-    height: spacing.xl,
-  },
-  // Voice Selection Styles
-  voiceList: {
-    gap: spacing.sm,
   },
   voiceOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: spacing.md,
+    padding: spacing.lg,
+    backgroundColor: theme.colors.surface,
     borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.gray[200],
-    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   voiceOptionSelected: {
-    borderColor: colors.primary[500],
-    backgroundColor: colors.primary[50],
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary + '10',
   },
-  voiceOptionLeft: {
+  voiceContent: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  voiceAvatarSmall: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  voiceAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.sm,
+    marginRight: spacing.md,
   },
-  voiceEmojiSmall: {
-    fontSize: 18,
+  voiceAvatarText: {
+    fontSize: fontSize.lg,
   },
   voiceInfo: {
     flex: 1,
   },
-  voiceNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 2,
+  voiceName: {
+    fontSize: fontSize.base,
+    fontWeight: '500',
+    color: theme.colors.text,
+    marginBottom: spacing.xs / 2,
   },
-  
-  // Date/Time Button Styles
+  voicePersonality: {
+    fontSize: fontSize.sm,
+    color: theme.colors.textSecondary,
+  },
+  whenCard: {
+    marginBottom: spacing.lg,
+  },
   dateTimeRow: {
     flexDirection: 'row',
     gap: spacing.md,
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   dateTimeButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
+    padding: spacing.lg,
+    backgroundColor: theme.colors.surface,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: colors.gray[200],
-    backgroundColor: '#ffffff',
+    borderColor: isDark ? theme.colors.textSecondary + '20' : theme.colors.textSecondary + '10',
   },
   dateTimeButtonText: {
     fontSize: fontSize.base,
-    color: colors.gray[700],
+    fontWeight: '500',
+    color: theme.colors.text,
+    marginLeft: spacing.md,
+  },
+  scheduledInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: theme.colors.primary + '10',
+    borderRadius: borderRadius.md,
+  },
+  scheduledInfoText: {
+    fontSize: fontSize.sm,
+    color: theme.colors.primary,
+    marginLeft: spacing.sm,
     fontWeight: '500',
   },
-  
-  // Bottom Button Styles
-  bottomContainer: {
-    backgroundColor: '#ffffff',
-    borderTopWidth: 1,
-    borderTopColor: colors.gray[100],
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    paddingBottom: spacing.lg,
+  recurrenceCard: {
+    marginBottom: spacing.lg,
   },
-  buttonRow: {
+  recurrenceToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+  },
+  recurrenceLeft: {
+    flex: 1,
+  },
+  recurrenceLabel: {
+    fontSize: fontSize.base,
+    fontWeight: '500',
+    color: theme.colors.text,
+    marginBottom: spacing.xs / 2,
+  },
+  recurrenceSubtext: {
+    fontSize: fontSize.sm,
+    color: theme.colors.textSecondary,
+  },
+  toggle: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: isDark ? theme.colors.textSecondary + '30' : theme.colors.textSecondary + '20',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  toggleKnob: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  toggleKnobActive: {
+    transform: [{ translateX: 20 }],
+  },
+  recurrenceOptions: {
     flexDirection: 'row',
     gap: spacing.md,
+    marginTop: spacing.lg,
   },
-  secondaryButton: {
+  recurrenceOption: {
     flex: 1,
     paddingVertical: spacing.md,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.gray[300],
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
-  },
-  secondaryButtonText: {
-    fontSize: fontSize.base,
-    color: colors.gray[700],
-    fontWeight: '600',
-  },
-  primaryButton: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
+    backgroundColor: theme.colors.surface,
     borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[600],
+    borderWidth: 2,
+    borderColor: 'transparent',
+    alignItems: 'center',
   },
-  primaryButtonDisabled: {
-    backgroundColor: colors.gray[300],
+  recurrenceOptionSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary + '10',
   },
-  primaryButtonText: {
+  recurrenceOptionText: {
     fontSize: fontSize.base,
-    color: '#ffffff',
-    fontWeight: '600',
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
+  recurrenceOptionTextSelected: {
+    color: theme.colors.primary,
+  },
+  saveSection: {
+    marginTop: spacing.xl,
+    marginBottom: spacing['3xl'],
+  },
+  saveSubtext: {
+    fontSize: fontSize.sm,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.md,
   },
 }); 
