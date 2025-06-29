@@ -209,7 +209,7 @@
 - [ ] **Design System Completion**
   - [ ] Consistent component styling
   - [ ] Accessibility improvements
-  - [ ] Dark mode support (optional)
+  - [ ] Dark mode support 
   - [ ] Animation and transitions
 - [ ] **Performance Optimization**
   - [ ] Image optimization

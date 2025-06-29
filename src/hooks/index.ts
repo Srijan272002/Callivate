@@ -6,9 +6,12 @@
 // - useNotifications (notification handling)
 // - useTheme (theme switching)
 
+// Custom hooks for the Callivate app
+
 // Authentication hooks
 export * from './useAuth';
 export * from './useNotifications';
+export * from './useTheme';
 
 // Placeholder for future hooks:
 // - useTasks (task management)

@@ -9,6 +9,7 @@ import {
   GowunDodum_400Regular,
 } from '@expo-google-fonts/gowun-dodum';
 import { AuthProvider } from './src/hooks/useAuth';
+import { ThemeProvider } from './src/hooks/useTheme';
 import AppNavigator from './src/navigation/AppNavigator';
 import './src/styles/globalStyles'; // Apply global font styles
 import { NotificationService, OfflineService, TaskService } from './src/services';
@@ -80,10 +81,12 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <AppNavigator />
-        <StatusBar style="auto" />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppNavigator />
+          <StatusBar style="auto" />
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

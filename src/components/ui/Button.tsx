@@ -6,8 +6,19 @@ import {
   TouchableOpacityProps,
   ViewStyle,
   TextStyle,
+  AccessibilityRole,
 } from 'react-native';
-import { colors, spacing, fontSize, borderRadius } from '../../styles/theme';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring, 
+  withTiming,
+  interpolate,
+} from 'react-native-reanimated';
+import { useTheme } from '../../hooks/useTheme';
+import { spacing, fontSize, borderRadius } from '../../styles/theme';
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -18,6 +29,10 @@ interface ButtonProps extends TouchableOpacityProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   fullWidth?: boolean;
+  // Accessibility props
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  accessibilityRole?: AccessibilityRole;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -31,8 +46,15 @@ export const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   style,
   onPress,
+  accessibilityLabel,
+  accessibilityHint,
+  accessibilityRole = 'button',
   ...props
 }) => {
+  const { theme, isDark } = useTheme();
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+
   const getButtonStyle = (): ViewStyle => {
     const baseStyle: ViewStyle = {
       flexDirection: 'row',
@@ -40,50 +62,64 @@ export const Button: React.FC<ButtonProps> = ({
       justifyContent: 'center',
       borderRadius: borderRadius.lg,
       borderWidth: 1,
+      // Enhanced shadow for better depth
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
     };
 
-    // Size styles
+    // Size styles with better spacing
     switch (size) {
       case 'sm':
         baseStyle.paddingHorizontal = spacing.md;
         baseStyle.paddingVertical = spacing.sm;
+        baseStyle.minHeight = 36;
         break;
       case 'lg':
-        baseStyle.paddingHorizontal = spacing['2xl'];
+        baseStyle.paddingHorizontal = spacing['3xl'];
         baseStyle.paddingVertical = spacing.lg;
+        baseStyle.minHeight = 56;
         break;
       default: // md
         baseStyle.paddingHorizontal = spacing.xl;
         baseStyle.paddingVertical = spacing.md;
+        baseStyle.minHeight = 44;
     }
 
-    // Variant styles
+    // Variant styles with theme support
     switch (variant) {
       case 'primary':
-        baseStyle.backgroundColor = colors.primary[500];
-        baseStyle.borderColor = colors.primary[500];
+        baseStyle.backgroundColor = theme.colors.primary;
+        baseStyle.borderColor = theme.colors.primary;
         break;
       case 'secondary':
-        baseStyle.backgroundColor = colors.secondary[100];
-        baseStyle.borderColor = colors.secondary[200];
+        baseStyle.backgroundColor = theme.colors.surface;
+        baseStyle.borderColor = isDark ? theme.colors.textSecondary : theme.colors.surface;
         break;
       case 'outline':
         baseStyle.backgroundColor = 'transparent';
-        baseStyle.borderColor = colors.primary[500];
+        baseStyle.borderColor = theme.colors.primary;
+        baseStyle.borderWidth = 2;
         break;
       case 'ghost':
         baseStyle.backgroundColor = 'transparent';
         baseStyle.borderColor = 'transparent';
+        baseStyle.shadowOpacity = 0;
+        baseStyle.elevation = 0;
         break;
       case 'danger':
-        baseStyle.backgroundColor = colors.danger[500];
-        baseStyle.borderColor = colors.danger[500];
+        baseStyle.backgroundColor = theme.colors.danger;
+        baseStyle.borderColor = theme.colors.danger;
         break;
     }
 
-    // Disabled state
+    // Disabled state with better visual feedback
     if (disabled || loading) {
       baseStyle.opacity = 0.6;
+      baseStyle.shadowOpacity = 0;
+      baseStyle.elevation = 0;
     }
 
     // Full width
@@ -98,6 +134,7 @@ export const Button: React.FC<ButtonProps> = ({
     const baseStyle: TextStyle = {
       fontWeight: '600',
       textAlign: 'center',
+      letterSpacing: 0.5,
     };
 
     // Size styles
@@ -112,54 +149,93 @@ export const Button: React.FC<ButtonProps> = ({
         baseStyle.fontSize = fontSize.base;
     }
 
-    // Variant styles
+    // Variant styles with theme support
     switch (variant) {
       case 'primary':
       case 'danger':
         baseStyle.color = '#ffffff';
         break;
       case 'secondary':
-        baseStyle.color = colors.secondary[700];
+        baseStyle.color = theme.colors.text;
         break;
       case 'outline':
       case 'ghost':
-        baseStyle.color = colors.primary[500];
+        baseStyle.color = theme.colors.primary;
         break;
     }
 
     return baseStyle;
   };
 
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+      opacity: opacity.value,
+    };
+  });
+
+  const handlePressIn = () => {
+    if (!disabled && !loading) {
+      scale.value = withSpring(0.96, { 
+        damping: 15,
+        stiffness: 300,
+      });
+    }
+  };
+
+  const handlePressOut = () => {
+    if (!disabled && !loading) {
+      scale.value = withSpring(1, { 
+        damping: 15,
+        stiffness: 300,
+      });
+    }
+  };
+
   const handlePress = () => {
     if (!disabled && !loading && onPress) {
+      // Haptic feedback could be added here for iOS
       onPress({} as any);
     }
   };
 
   return (
-    <TouchableOpacity
-      style={[getButtonStyle(), style]}
+    <AnimatedTouchableOpacity
+      style={[getButtonStyle(), animatedStyle, style]}
       onPress={handlePress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       disabled={disabled || loading}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel || title}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{
+        disabled: disabled || loading,
+        busy: loading,
+      }}
       {...props}
     >
-      {leftIcon && !loading && leftIcon}
-      
       {loading ? (
         <ActivityIndicator 
           size="small" 
-          color={variant === 'primary' || variant === 'danger' ? '#ffffff' : colors.primary[500]} 
+          color={variant === 'primary' || variant === 'danger' ? '#ffffff' : theme.colors.primary} 
         />
       ) : (
         <>
-          {leftIcon && <Text style={{ marginRight: spacing.sm }} />}
+          {leftIcon && (
+            <Text style={{ marginRight: spacing.sm }}>
+              {leftIcon}
+            </Text>
+          )}
           <Text style={getTextStyle()}>{title}</Text>
-          {rightIcon && <Text style={{ marginLeft: spacing.sm }} />}
+          {rightIcon && (
+            <Text style={{ marginLeft: spacing.sm }}>
+              {rightIcon}
+            </Text>
+          )}
         </>
       )}
-      
-      {rightIcon && !loading && rightIcon}
-    </TouchableOpacity>
+    </AnimatedTouchableOpacity>
   );
 }; 

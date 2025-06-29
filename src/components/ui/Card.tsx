@@ -1,14 +1,30 @@
 import React from 'react';
-import { View, ViewProps, ViewStyle } from 'react-native';
-import { colors, spacing, borderRadius } from '../../styles/theme';
+import { View, ViewProps, ViewStyle, TouchableOpacity, TouchableOpacityProps } from 'react-native';
+import Animated, { FadeInUp, FadeInDown, FadeIn } from 'react-native-reanimated';
+import { useTheme } from '../../hooks/useTheme';
+import { spacing, borderRadius } from '../../styles/theme';
+
+const AnimatedView = Animated.createAnimatedComponent(View);
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 interface CardProps extends ViewProps {
   padding?: keyof typeof spacing;
   margin?: keyof typeof spacing;
   shadow?: boolean | 'sm' | 'md' | 'lg' | 'xl';
   border?: boolean;
-  variant?: 'default' | 'elevated' | 'outlined';
+  variant?: 'default' | 'elevated' | 'outlined' | 'glass';
   children: React.ReactNode;
+  // Animation props
+  animated?: boolean;
+  animationType?: 'fadeIn' | 'fadeInUp' | 'fadeInDown';
+  animationDelay?: number;
+  // Interaction props
+  onPress?: () => void;
+  pressable?: boolean;
+  // Accessibility props
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  accessibilityRole?: 'none' | 'button' | 'link' | 'text';
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -19,47 +35,57 @@ export const Card: React.FC<CardProps> = ({
   variant = 'default',
   children,
   style,
+  animated = true,
+  animationType = 'fadeInUp',
+  animationDelay = 0,
+  onPress,
+  pressable = false,
+  accessibilityLabel,
+  accessibilityHint,
+  accessibilityRole = 'none',
   ...props
 }) => {
+  const { theme, isDark } = useTheme();
+
   const getCardStyle = (): ViewStyle => {
     const baseStyle: ViewStyle = {
-      backgroundColor: colors.gray[50],
       borderRadius: borderRadius.lg,
       padding: spacing[padding],
+      overflow: 'hidden',
     };
 
     if (margin) {
       baseStyle.margin = spacing[margin];
     }
 
-    // Enhanced shadow effects
+    // Enhanced shadow effects with theme awareness
     if (shadow) {
       const shadowPresets = {
         sm: {
-          shadowColor: '#000',
+          shadowColor: isDark ? '#000' : '#000',
           shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 1,
+          shadowOpacity: isDark ? 0.3 : 0.05,
+          shadowRadius: 2,
           elevation: 2,
         },
         md: {
-          shadowColor: '#000',
+          shadowColor: isDark ? '#000' : '#000',
           shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
-          shadowRadius: 6,
+          shadowOpacity: isDark ? 0.4 : 0.1,
+          shadowRadius: 8,
           elevation: 8,
         },
         lg: {
-          shadowColor: '#000',
+          shadowColor: isDark ? '#000' : '#000',
           shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.15,
-          shadowRadius: 12,
+          shadowOpacity: isDark ? 0.5 : 0.15,
+          shadowRadius: 16,
           elevation: 12,
         },
         xl: {
-          shadowColor: '#000',
+          shadowColor: isDark ? '#000' : '#000',
           shadowOffset: { width: 0, height: 16 },
-          shadowOpacity: 0.2,
+          shadowOpacity: isDark ? 0.6 : 0.2,
           shadowRadius: 24,
           elevation: 16,
         },
@@ -69,31 +95,73 @@ export const Card: React.FC<CardProps> = ({
       Object.assign(baseStyle, shadowPresets[shadowType]);
     }
 
-    // Variant styles
+    // Variant styles with theme support
     switch (variant) {
       case 'elevated':
-        baseStyle.backgroundColor = '#ffffff';
+        baseStyle.backgroundColor = theme.colors.surface;
         break;
       case 'outlined':
-        baseStyle.backgroundColor = 'transparent';
+        baseStyle.backgroundColor = theme.colors.background;
         baseStyle.borderWidth = 1;
-        baseStyle.borderColor = colors.gray[200];
+        baseStyle.borderColor = isDark ? theme.colors.textSecondary : theme.colors.surface;
+        break;
+      case 'glass':
+        baseStyle.backgroundColor = isDark 
+          ? 'rgba(255, 255, 255, 0.05)' 
+          : 'rgba(255, 255, 255, 0.8)';
         break;
       default:
-        baseStyle.backgroundColor = '#ffffff';
+        baseStyle.backgroundColor = theme.colors.surface;
     }
 
     if (border && variant !== 'outlined') {
       baseStyle.borderWidth = 1;
-      baseStyle.borderColor = colors.gray[200];
+      baseStyle.borderColor = isDark ? theme.colors.textSecondary : theme.colors.surface;
     }
 
     return baseStyle;
   };
 
+  const getAnimationEntering = () => {
+    const animations = {
+      fadeIn: FadeIn.delay(animationDelay),
+      fadeInUp: FadeInUp.delay(animationDelay).springify().damping(15).stiffness(200),
+      fadeInDown: FadeInDown.delay(animationDelay).springify().damping(15).stiffness(200),
+    };
+    return animations[animationType];
+  };
+
+  // If card is pressable, use TouchableOpacity
+  if (pressable || onPress) {
+    const Component = animated ? AnimatedTouchableOpacity : TouchableOpacity;
+    return (
+      <Component
+        style={[getCardStyle(), style]}
+        onPress={onPress}
+        activeOpacity={0.95}
+        entering={animated ? getAnimationEntering() : undefined}
+        accessibilityRole={accessibilityRole === 'none' ? 'button' : accessibilityRole}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        {...props}
+      >
+        {children}
+      </Component>
+    );
+  }
+
+  // Regular non-pressable card
+  const Component = animated ? AnimatedView : View;
   return (
-    <View style={[getCardStyle(), style]} {...props}>
+    <Component
+      style={[getCardStyle(), style]}
+      entering={animated ? getAnimationEntering() : undefined}
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      {...props}
+    >
       {children}
-    </View>
+    </Component>
   );
 }; 

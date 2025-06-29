@@ -31,7 +31,8 @@
     "scheme": "callivate",
     "plugins": [
       "expo-secure-store",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "react-native-reanimated"
     ],
     "extra": {
       "eas": {

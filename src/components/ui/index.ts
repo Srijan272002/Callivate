@@ -1,7 +1,9 @@
+// Enhanced UI Components with theme support, accessibility, and animations
 export { Button } from './Button';
 export { Card } from './Card';
+export { Text } from './Text';
 export { Input } from './Input';
-export { GoogleIcon } from './GoogleIcon';
-export { ProgressBar } from './ProgressBar';
 export { Badge } from './Badge';
-export { Text } from './Text'; 
+export { ProgressBar } from './ProgressBar';
+export { GoogleIcon } from './GoogleIcon';
+export { ThemeToggle } from './ThemeToggle'; 

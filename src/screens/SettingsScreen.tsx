@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   ScrollView,
@@ -11,8 +10,9 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fontSize, spacing, borderRadius } from '../styles/theme';
-import { Card, Button, Badge } from '../components/ui';
+import { useTheme } from '../hooks/useTheme';
+import { spacing, borderRadius } from '../styles/theme';
+import { Card, Button, Badge, Text, ThemeToggle } from '../components/ui';
 import { Voice, UserSettings } from '../types';
 import { useAuth } from '../hooks/useAuth';
 
@@ -49,6 +49,8 @@ const VoiceSelectionModal: React.FC<VoiceSelectionModalProps> = ({
   selectedVoiceId,
   onSelectVoice,
 }) => {
+  const { theme } = useTheme();
+
   const handleSelectVoice = (voiceId: string) => {
     onSelectVoice(voiceId);
     onClose();
@@ -62,64 +64,118 @@ const VoiceSelectionModal: React.FC<VoiceSelectionModalProps> = ({
     );
   };
 
+  const modalStyles = StyleSheet.create({
+    modalContainer: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.textSecondary + '20',
+    },
+    modalContent: {
+      flex: 1,
+      paddingHorizontal: spacing.lg,
+    },
+  });
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
+      <SafeAreaView style={modalStyles.modalContainer}>
+        <View style={modalStyles.modalHeader}>
           <TouchableOpacity onPress={onClose}>
-            <Text style={styles.modalCancel}>Cancel</Text>
+            <Text variant="body" color="primary">Cancel</Text>
           </TouchableOpacity>
-          <Text style={styles.modalTitle}>Select Voice</Text>
-          <View style={styles.modalRight} />
+          <Text variant="h6" color="text">Select Voice</Text>
+          <View style={{ width: 60 }} />
         </View>
 
-        <ScrollView style={styles.modalContent}>
-          {mockVoices.map((voice) => (
-            <TouchableOpacity
+        <ScrollView style={modalStyles.modalContent}>
+          {mockVoices.map((voice, index) => (
+            <Card
               key={voice.id}
-              style={[
-                styles.voiceOption,
-                selectedVoiceId === voice.id && styles.voiceOptionSelected
-              ]}
+              animated
+              animationDelay={index * 100}
+              pressable
               onPress={() => handleSelectVoice(voice.id)}
+              variant={selectedVoiceId === voice.id ? 'elevated' : 'default'}
+              style={{ 
+                marginVertical: spacing.xs,
+                borderWidth: selectedVoiceId === voice.id ? 2 : 0,
+                borderColor: selectedVoiceId === voice.id ? theme.colors.primary : 'transparent',
+              }}
             >
-              <View style={styles.voiceOptionLeft}>
-                <Ionicons
-                  name={voice.isCustom ? 'mic' : 'volume-high'}
-                  size={20}
-                  color={colors.gray[600]}
-                />
-                <View style={styles.voiceInfo}>
-                  <Text style={styles.voiceOptionName}>{voice.name}</Text>
-                  {voice.isDefault && (
-                    <Badge variant="secondary" size="sm">Default</Badge>
-                  )}
-                  {voice.isCustom && (
-                    <Badge variant="info" size="sm">Custom</Badge>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  <Ionicons
+                    name={voice.isCustom ? 'mic' : 'volume-high'}
+                    size={20}
+                    color={theme.colors.textSecondary}
+                    style={{ marginRight: spacing.md }}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text variant="body" color="text" style={{ marginBottom: 4 }}>
+                      {voice.name}
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+                      {voice.isDefault && (
+                        <Badge variant="secondary" size="sm">Default</Badge>
+                      )}
+                      {voice.isCustom && (
+                        <Badge variant="info" size="sm">Custom</Badge>
+                      )}
+                    </View>
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: spacing.sm,
+                      paddingVertical: spacing.xs,
+                      borderRadius: borderRadius.md,
+                      backgroundColor: theme.colors.primary + '20',
+                    }}
+                    onPress={() => handleTestVoice(voice)}
+                  >
+                    <Ionicons name="play" size={14} color={theme.colors.primary} />
+                    <Text variant="caption" color="primary" style={{ marginLeft: 4 }}>
+                      Test
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  {selectedVoiceId === voice.id && (
+                    <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
                   )}
                 </View>
               </View>
-
-              <View style={styles.voiceActions}>
-                <TouchableOpacity
-                  style={styles.testButton}
-                  onPress={() => handleTestVoice(voice)}
-                >
-                  <Ionicons name="play" size={16} color={colors.primary[600]} />
-                  <Text style={styles.testButtonText}>Test</Text>
-                </TouchableOpacity>
-                
-                {selectedVoiceId === voice.id && (
-                  <Ionicons name="checkmark-circle" size={20} color={colors.primary[600]} />
-                )}
-              </View>
-            </TouchableOpacity>
+            </Card>
           ))}
 
-          <TouchableOpacity style={styles.addVoiceButton}>
-            <Ionicons name="add" size={20} color={colors.primary[600]} />
-            <Text style={styles.addVoiceText}>Record Custom Voice</Text>
-          </TouchableOpacity>
+          <Card
+            animated
+            animationDelay={mockVoices.length * 100}
+            pressable
+            variant="outlined"
+            style={{ 
+              marginVertical: spacing.md,
+              borderStyle: 'dashed',
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="add" size={20} color={theme.colors.primary} />
+              <Text variant="body" color="primary" style={{ marginLeft: spacing.sm }}>
+                Record Custom Voice
+              </Text>
+            </View>
+          </Card>
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -128,6 +184,7 @@ const VoiceSelectionModal: React.FC<VoiceSelectionModalProps> = ({
 
 export const SettingsScreen: React.FC = () => {
   const { signOut, user } = useAuth();
+  const { theme } = useTheme();
   const [settings, setSettings] = useState<UserSettings>(mockSettings);
   const [voiceModalVisible, setVoiceModalVisible] = useState(false);
 
@@ -210,266 +267,189 @@ export const SettingsScreen: React.FC = () => {
           text: 'Delete Account',
           style: 'destructive',
           onPress: () => {
-            Alert.alert(
-              'Final Confirmation',
-              'Are you absolutely sure? Type "DELETE" to confirm.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Confirm Delete', style: 'destructive' },
-              ]
-            );
+            Alert.alert('Account Deleted', 'Your account has been permanently deleted.');
+            signOut();
           },
         },
       ]
     );
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
+    },
+    sectionTitle: {
+      marginTop: spacing.xl,
+      marginBottom: spacing.md,
+    },
+    settingRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+    },
+    userInfo: {
+      alignItems: 'center',
+      paddingVertical: spacing.lg,
+    },
+    avatar: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: theme.colors.primary + '20',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+  });
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Settings</Text>
-      </View>
-
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Profile Section */}
-        <Card style={styles.profileCard} shadow="sm">
-          <View style={styles.profileInfo}>
-            <View style={styles.profileAvatar}>
-              <Ionicons name="person" size={32} color={colors.gray[600]} />
+        {/* User Profile Section */}
+        <Card animated shadow="lg" style={{ marginBottom: spacing.lg }}>
+          <View style={styles.userInfo}>
+            <View style={styles.avatar}>
+              <Ionicons name="person" size={40} color={theme.colors.primary} />
             </View>
-            <View style={styles.profileDetails}>
-              <Text style={styles.profileName}>
-                {user?.name || user?.email?.split('@')[0] || 'User'}
-              </Text>
-              <Text style={styles.profileEmail}>{user?.email}</Text>
-            </View>
+            <Text variant="h5" color="text" style={{ marginBottom: 4 }}>
+              {user?.name || user?.email?.split('@')[0] || 'User'}
+            </Text>
+            <Text variant="bodySmall" color="textSecondary">
+              {user?.email}
+            </Text>
           </View>
         </Card>
 
-        {/* Voice & Audio Settings */}
-        <Card style={styles.settingsCard} shadow="sm">
-          <Text style={styles.cardTitle}>Voice & Audio</Text>
-          
+        {/* Appearance Section */}
+        <Text variant="h6" color="text" style={styles.sectionTitle}>
+          Appearance
+        </Text>
+        <Card animated animationDelay={100} shadow="md" style={{ marginBottom: spacing.lg }}>
+          <View style={styles.settingRow}>
+            <ThemeToggle />
+          </View>
+        </Card>
+
+        {/* Voice & Notifications */}
+        <Text variant="h6" color="text" style={styles.sectionTitle}>
+          Voice & Notifications
+        </Text>
+        <Card animated animationDelay={200} shadow="md" style={{ marginBottom: spacing.lg }}>
           <TouchableOpacity
-            style={styles.settingItem}
+            style={styles.settingRow}
             onPress={() => setVoiceModalVisible(true)}
           >
-            <View style={styles.settingLeft}>
-              <Ionicons name="volume-high" size={20} color={colors.gray[600]} />
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Default Voice</Text>
-                <Text style={styles.settingValue}>{selectedVoice?.name}</Text>
-              </View>
+            <View>
+              <Text variant="body" color="text">Default Voice</Text>
+              <Text variant="bodySmall" color="textSecondary">
+                {selectedVoice?.name || 'Select voice'}
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray[400]} />
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
           </TouchableOpacity>
 
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="notifications-off" size={20} color={colors.gray[600]} />
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Silent Mode Default</Text>
-                <Text style={styles.settingSubtitle}>Use notifications instead of calls</Text>
-              </View>
-            </View>
-            <Switch
-              value={settings.enableSilentMode}
-              onValueChange={(value) => handleToggleSetting('enableSilentMode', value)}
-              trackColor={{ false: colors.gray[300], true: colors.primary[200] }}
-              thumbColor={settings.enableSilentMode ? colors.primary[500] : colors.gray[500]}
-            />
-          </View>
-        </Card>
-
-        {/* Notifications */}
-        <Card style={styles.settingsCard} shadow="sm">
-          <Text style={styles.cardTitle}>Notifications</Text>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="notifications" size={20} color={colors.gray[600]} />
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Push Notifications</Text>
-                <Text style={styles.settingSubtitle}>Reminders and updates</Text>
-              </View>
+          <View style={[styles.settingRow, { borderTopWidth: 1, borderTopColor: theme.colors.textSecondary + '10' }]}>
+            <View>
+              <Text variant="body" color="text">Push Notifications</Text>
+              <Text variant="bodySmall" color="textSecondary">
+                Get notified about reminders
+              </Text>
             </View>
             <Switch
               value={settings.enableNotifications}
               onValueChange={(value) => handleToggleSetting('enableNotifications', value)}
-              trackColor={{ false: colors.gray[300], true: colors.primary[200] }}
-              thumbColor={settings.enableNotifications ? colors.primary[500] : colors.gray[500]}
+              trackColor={{ false: theme.colors.textSecondary + '30', true: theme.colors.primary + '50' }}
+              thumbColor={settings.enableNotifications ? theme.colors.primary : '#f4f3f4'}
             />
           </View>
 
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="time" size={20} color={colors.gray[600]} />
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Notification Schedule</Text>
-                <Text style={styles.settingValue}>Customize timing</Text>
-              </View>
+          <View style={[styles.settingRow, { borderTopWidth: 1, borderTopColor: theme.colors.textSecondary + '10' }]}>
+            <View>
+              <Text variant="body" color="text">Silent Mode</Text>
+              <Text variant="bodySmall" color="textSecondary">
+                Use notifications instead of calls
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray[400]} />
-          </TouchableOpacity>
+            <Switch
+              value={settings.enableSilentMode}
+              onValueChange={(value) => handleToggleSetting('enableSilentMode', value)}
+              trackColor={{ false: theme.colors.textSecondary + '30', true: theme.colors.primary + '50' }}
+              thumbColor={settings.enableSilentMode ? theme.colors.primary : '#f4f3f4'}
+            />
+          </View>
         </Card>
 
-        {/* Preferences */}
-        <Card style={styles.settingsCard} shadow="sm">
-          <Text style={styles.cardTitle}>Preferences</Text>
-          
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="time-outline" size={20} color={colors.gray[600]} />
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Time Format</Text>
-                <Text style={styles.settingValue}>
-                  {settings.preferredTimeFormat === '12h' ? '12 Hour' : '24 Hour'}
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray[400]} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="globe" size={20} color={colors.gray[600]} />
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Language</Text>
-                <Text style={styles.settingValue}>English</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray[400]} />
-          </TouchableOpacity>
+        {/* Data & Privacy */}
+        <Text variant="h6" color="text" style={styles.sectionTitle}>
+          Data & Privacy
+        </Text>
+        <Card animated animationDelay={300} shadow="md" style={{ marginBottom: spacing.lg }}>
+          <Button
+            title="Clear Call History"
+            variant="outline"
+            size="md"
+            onPress={handleClearCallHistory}
+            style={{ marginBottom: spacing.md }}
+            accessibilityHint="Clears all call history and recordings"
+          />
+          <Button
+            title="Reset Streaks"
+            variant="outline"
+            size="md"
+            onPress={handleResetStreaks}
+            style={{ marginBottom: spacing.md }}
+            accessibilityHint="Resets all achievement streaks to zero"
+          />
+          <Button
+            title="Delete All Notes"
+            variant="outline"
+            size="md"
+            onPress={handleDeleteAllNotes}
+            style={{ marginBottom: spacing.md }}
+            accessibilityHint="Permanently deletes all saved notes"
+          />
+          <Button
+            title="Export Data"
+            variant="outline"
+            size="md"
+            onPress={handleExportData}
+            accessibilityHint="Downloads a copy of your data"
+          />
         </Card>
 
-        {/* Privacy & Data */}
-        <Card style={styles.settingsCard} shadow="sm">
-          <Text style={styles.cardTitle}>Privacy & Data</Text>
-          
-          <TouchableOpacity style={styles.settingItem} onPress={handleClearCallHistory}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="call" size={20} color={colors.warning[600]} />
-              <View style={styles.settingInfo}>
-                <Text style={[styles.settingLabel, { color: colors.warning[700] }]}>
-                  Clear Call History
-                </Text>
-                <Text style={styles.settingSubtitle}>Delete all call recordings</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray[400]} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingItem} onPress={handleResetStreaks}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="refresh" size={20} color={colors.warning[600]} />
-              <View style={styles.settingInfo}>
-                <Text style={[styles.settingLabel, { color: colors.warning[700] }]}>
-                  Reset Streaks
-                </Text>
-                <Text style={styles.settingSubtitle}>Reset all streak counters</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray[400]} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingItem} onPress={handleDeleteAllNotes}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="document-text" size={20} color={colors.warning[600]} />
-              <View style={styles.settingInfo}>
-                <Text style={[styles.settingLabel, { color: colors.warning[700] }]}>
-                  Delete All Notes
-                </Text>
-                <Text style={styles.settingSubtitle}>Permanently remove all notes</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray[400]} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingItem} onPress={handleExportData}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="download" size={20} color={colors.primary[600]} />
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Export Data</Text>
-                <Text style={styles.settingSubtitle}>Download your data</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray[400]} />
-          </TouchableOpacity>
-        </Card>
-
-        {/* Support & About */}
-        <Card style={styles.settingsCard} shadow="sm">
-          <Text style={styles.cardTitle}>Support & About</Text>
-          
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="help-circle" size={20} color={colors.gray[600]} />
-              <Text style={styles.settingLabel}>Help & FAQ</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray[400]} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="mail" size={20} color={colors.gray[600]} />
-              <Text style={styles.settingLabel}>Contact Support</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray[400]} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="document-text" size={20} color={colors.gray[600]} />
-              <Text style={styles.settingLabel}>Privacy Policy</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray[400]} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="information-circle" size={20} color={colors.gray[600]} />
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>About Callivate</Text>
-                <Text style={styles.settingValue}>Version 1.0.0</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray[400]} />
-          </TouchableOpacity>
-        </Card>
-
-        {/* Danger Zone */}
-        <Card style={styles.dangerCard} shadow="sm">
-          <Text style={styles.dangerTitle}>Danger Zone</Text>
-          
-          <TouchableOpacity style={styles.dangerItem} onPress={handleDeleteAccount}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="trash" size={20} color={colors.danger[600]} />
-              <View style={styles.settingInfo}>
-                <Text style={[styles.settingLabel, { color: colors.danger[700] }]}>
-                  Delete Account
-                </Text>
-                <Text style={styles.settingSubtitle}>Permanently delete your account</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray[400]} />
-          </TouchableOpacity>
-        </Card>
-
-        {/* Logout Button */}
-        <View style={styles.logoutContainer}>
+        {/* Account Actions */}
+        <Text variant="h6" color="text" style={styles.sectionTitle}>
+          Account
+        </Text>
+        <Card animated animationDelay={400} shadow="md" style={{ marginBottom: spacing.xl }}>
           <Button
             title="Sign Out"
-            variant="ghost"
+            variant="outline"
+            size="md"
             onPress={signOut}
-            style={styles.logoutButton}
+            style={{ marginBottom: spacing.md }}
+            leftIcon={<Ionicons name="log-out-outline" size={18} color={theme.colors.textSecondary} />}
+            accessibilityHint="Signs out of your account"
           />
-        </View>
-
-        <View style={styles.bottomSpacing} />
+          <Button
+            title="Delete Account"
+            variant="danger"
+            size="md"
+            onPress={handleDeleteAccount}
+            leftIcon={<Ionicons name="trash-outline" size={18} color="#ffffff" />}
+            accessibilityHint="Permanently deletes your account and all data"
+          />
+        </Card>
       </ScrollView>
 
-      {/* Voice Selection Modal */}
       <VoiceSelectionModal
         visible={voiceModalVisible}
         onClose={() => setVoiceModalVisible(false)}
@@ -478,227 +458,4 @@ export const SettingsScreen: React.FC = () => {
       />
     </SafeAreaView>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.gray[50],
-  },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.md,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray[100],
-  },
-  headerTitle: {
-    fontSize: fontSize['2xl'],
-    fontWeight: '700',
-    color: colors.gray[900],
-    textAlign: 'center',
-  },
-  content: {
-    flex: 1,
-    padding: spacing.lg,
-  },
-  profileCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  profileInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.gray[200],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  profileDetails: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    color: colors.gray[900],
-    marginBottom: spacing.xs / 2,
-  },
-  profileEmail: {
-    fontSize: fontSize.sm,
-    color: colors.gray[600],
-  },
-  settingsCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  cardTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    color: colors.gray[900],
-    marginBottom: spacing.md,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray[100],
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  settingInfo: {
-    marginLeft: spacing.md,
-    flex: 1,
-  },
-  settingLabel: {
-    fontSize: fontSize.base,
-    fontWeight: '500',
-    color: colors.gray[900],
-    marginBottom: spacing.xs / 2,
-  },
-  settingSubtitle: {
-    fontSize: fontSize.sm,
-    color: colors.gray[600],
-  },
-  settingValue: {
-    fontSize: fontSize.sm,
-    color: colors.gray[600],
-  },
-  dangerCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.danger[200],
-  },
-  dangerTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    color: colors.danger[700],
-    marginBottom: spacing.md,
-  },
-  dangerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-  },
-  logoutContainer: {
-    marginVertical: spacing.lg,
-  },
-  logoutButton: {
-    borderWidth: 1,
-    borderColor: colors.gray[300],
-  },
-  bottomSpacing: {
-    height: spacing.xl,
-  },
-  // Modal Styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.gray[50],
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.md,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray[100],
-  },
-  modalCancel: {
-    fontSize: fontSize.base,
-    color: colors.gray[600],
-  },
-  modalTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    color: colors.gray[900],
-  },
-  modalRight: {
-    width: 60,
-  },
-  modalContent: {
-    flex: 1,
-    padding: spacing.lg,
-  },
-  voiceOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    backgroundColor: '#ffffff',
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.gray[200],
-  },
-  voiceOptionSelected: {
-    borderColor: colors.primary[500],
-    backgroundColor: colors.primary[50],
-  },
-  voiceOptionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  voiceInfo: {
-    marginLeft: spacing.md,
-    flex: 1,
-  },
-  voiceOptionName: {
-    fontSize: fontSize.base,
-    fontWeight: '500',
-    color: colors.gray[900],
-    marginBottom: spacing.xs / 2,
-  },
-  voiceActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  testButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    backgroundColor: colors.primary[100],
-    borderRadius: borderRadius.md,
-    gap: spacing.xs / 2,
-  },
-  testButtonText: {
-    fontSize: fontSize.sm,
-    color: colors.primary[700],
-    fontWeight: '500',
-  },
-  addVoiceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.lg,
-    marginTop: spacing.md,
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.lg,
-    borderWidth: 2,
-    borderColor: colors.primary[200],
-    borderStyle: 'dashed',
-    gap: spacing.sm,
-  },
-  addVoiceText: {
-    fontSize: fontSize.base,
-    color: colors.primary[700],
-    fontWeight: '500',
-  },
-}); 
+}; 
