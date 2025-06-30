@@ -1,34 +1,5 @@
 import { Theme } from '../types';
 
-export const lightTheme: Theme = {
-  colors: {
-    primary: '#0ea5e9',
-    secondary: '#78716c',
-    background: '#ffffff',
-    surface: '#f5f5f4',
-    text: '#1c1917',
-    textSecondary: '#78716c',
-    success: '#22c55e',
-    warning: '#f59e0b',
-    danger: '#ef4444',
-  },
-  spacing: {
-    xs: 4,
-    sm: 8,
-    md: 16,
-    lg: 24,
-    xl: 32,
-  },
-  fontSize: {
-    xs: 12,
-    sm: 14,
-    md: 16,
-    lg: 18,
-    xl: 24,
-    xxl: 32,
-  },
-};
-
 export const darkTheme: Theme = {
   colors: {
     primary: '#38bdf8',
@@ -59,10 +30,10 @@ export const darkTheme: Theme = {
 };
 
 export const colors = {
-  // Direct access properties for compatibility
-  background: '#ffffff',
-  text: '#1c1917',
-  textSecondary: '#78716c',
+  // Direct access properties for compatibility - dark theme colors
+  background: '#1c1917',
+  text: '#fafaf9',
+  textSecondary: '#a8a29e',
   
   primary: {
     50: '#f0f9ff',

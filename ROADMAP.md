@@ -140,9 +140,8 @@
   - [ ] Notification settings
   - [ ] Privacy controls
 - [ ] **Voice Selection Screen**
-  - [ ] Preloaded voice templates
+  - [ ] Preloaded AI voice templates
   - [ ] Voice preview functionality
-  - [ ] Custom voice recording
   - [ ] Voice testing interface
 - [ ] **Privacy Controls**
   - [ ] Clear call history

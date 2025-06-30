@@ -158,6 +158,9 @@ export const CalendarScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Empty Header Section */}
+      <View style={styles.header} />
+      
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header Stats */}
         <View style={styles.statsContainer}>
@@ -350,6 +353,10 @@ export const CalendarScreen: React.FC = () => {
 const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  header: {
+    height: 60,
     backgroundColor: theme.colors.background,
   },
   content: {

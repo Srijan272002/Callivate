@@ -86,8 +86,7 @@ To help users **stay accountable and build daily habits** using real-time, AI-po
 
 ### 🔉 Voice Options
 
-* Choose from preloaded voice templates
-* Record and use own voice
+* Choose from preloaded AI voice templates
 * Silent mode available (replaces call with notification)
 
 ### 🔐 Privacy Features
@@ -96,7 +95,6 @@ To help users **stay accountable and build daily habits** using real-time, AI-po
 * Reset streaks
 * Delete all notes
 * Adult/inappropriate input filtering via AI + keyword rules
-* All voice recordings are deleted after processing
 
 ### 📴 Offline Behavior
 
@@ -193,7 +191,7 @@ To help users **stay accountable and build daily habits** using real-time, AI-po
 | Notification permissions & handling | ✅      |
 | Streaks + visual calendar           | ✅      |
 | Stats screen (monthly)              | ✅      |
-| Voice selection/recording           | ✅      |
+| AI voice selection                  | ✅      |
 | Notes editor with styling           | ✅      |
 | Privacy controls                    | ✅      |
 | Tailwind CSS for styling            | ✅      |

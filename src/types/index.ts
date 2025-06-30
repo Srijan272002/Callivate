@@ -87,10 +87,12 @@ export type RootStackParamList = {
   Main: undefined;
   Analytics: undefined;
   EditTask: { taskId: string };
+  PrivacyPolicy: undefined;
+  TermsOfService: undefined;
 };
 
 export type MainTabParamList = {
-  Dashboard: undefined;
+  ToDoList: undefined;
   Calendar: undefined;
   CreateTask: undefined;
   Notes: undefined;

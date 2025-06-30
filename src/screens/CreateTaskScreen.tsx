@@ -200,14 +200,14 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
       {/* Modern Header */}
       <View style={styles.header}>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Schedule AI Reminder</Text>
-          <Text style={styles.headerSubtitle}>Your personal reminder assistant</Text>
+          <Text style={styles.headerTitle}></Text>
+          <Text style={styles.headerSubtitle}></Text>
         </View>
         <TouchableOpacity 
           onPress={() => navigation?.goBack()}
           style={styles.closeButton}
         >
-          <Ionicons name="close" size={24} color={theme.colors.text} />
+          
         </TouchableOpacity>
       </View>
 
@@ -243,53 +243,53 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
             <Text style={styles.cardTitle}>Choose your AI assistant</Text>
           </View>
           
-          <View style={styles.voiceGrid}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.voiceSlider}
+          >
             {mockVoices.map((voice, index) => (
               <TouchableOpacity
                 key={voice.id}
-                style={[
-                  styles.voiceOption,
-                  form.voiceId === voice.id && styles.voiceOptionSelected
-                ]}
+                style={styles.voiceSliderItem}
                 onPress={() => setForm(prev => ({ ...prev, voiceId: voice.id, isSilentMode: false }))}
               >
-                <View style={styles.voiceContent}>
-                  <View style={[styles.voiceAvatar, { backgroundColor: getVoiceColor(index) + '20' }]}>
-                    <Text style={styles.voiceAvatarText}>{voice.avatar}</Text>
-                  </View>
-                  <View style={styles.voiceInfo}>
-                    <Text style={styles.voiceName}>{voice.name}</Text>
-                    <Text style={styles.voicePersonality}>{voice.personality}</Text>
-                  </View>
+                <View style={[
+                  styles.voiceSliderAvatar,
+                  form.voiceId === voice.id && styles.voiceSliderAvatarSelected,
+                  { backgroundColor: getVoiceColor(index) + '20' }
+                ]}>
+                  <Text style={styles.voiceSliderAvatarText}>{voice.avatar}</Text>
                 </View>
-                {form.voiceId === voice.id && (
-                  <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
-                )}
+                <Text style={[
+                  styles.voiceSliderName,
+                  form.voiceId === voice.id && styles.voiceSliderNameSelected
+                ]}>
+                  {voice.name}
+                </Text>
               </TouchableOpacity>
             ))}
             
             {/* Silent Mode Option */}
             <TouchableOpacity
-              style={[
-                styles.voiceOption,
-                form.isSilentMode && styles.voiceOptionSelected
-              ]}
+              style={styles.voiceSliderItem}
               onPress={() => setForm(prev => ({ ...prev, isSilentMode: true, voiceId: undefined }))}
             >
-              <View style={styles.voiceContent}>
-                <View style={[styles.voiceAvatar, { backgroundColor: theme.colors.textSecondary + '20' }]}>
-                  <Ionicons name="notifications-off" size={20} color={theme.colors.textSecondary} />
-                </View>
-                <View style={styles.voiceInfo}>
-                  <Text style={styles.voiceName}>Silent Mode</Text>
-                  <Text style={styles.voicePersonality}>Notification only</Text>
-                </View>
+              <View style={[
+                styles.voiceSliderAvatar,
+                form.isSilentMode && styles.voiceSliderAvatarSelected,
+                { backgroundColor: theme.colors.textSecondary + '20' }
+              ]}>
+                <Ionicons name="notifications-off" size={20} color={theme.colors.textSecondary} />
               </View>
-              {form.isSilentMode && (
-                <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
-              )}
+              <Text style={[
+                styles.voiceSliderName,
+                form.isSilentMode && styles.voiceSliderNameSelected
+              ]}>
+                Silent
+              </Text>
             </TouchableOpacity>
-          </View>
+          </ScrollView>
         </Card>
 
         {/* Date & Time Selection */}
@@ -497,51 +497,41 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
   voiceCard: {
     marginBottom: spacing.lg,
   },
-  voiceGrid: {
-    gap: spacing.md,
+  voiceSlider: {
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.md,
+    gap: spacing.lg,
   },
-  voiceOption: {
-    flexDirection: 'row',
+  voiceSliderItem: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.lg,
-    backgroundColor: theme.colors.surface,
-    borderRadius: borderRadius.lg,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    marginHorizontal: spacing.sm,
   },
-  voiceOptionSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + '10',
-  },
-  voiceContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  voiceAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.xl,
+  voiceSliderAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: borderRadius['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 3,
+    borderColor: 'transparent',
   },
-  voiceAvatarText: {
-    fontSize: fontSize.lg,
+  voiceSliderAvatarSelected: {
+    borderColor: theme.colors.primary,
+    transform: [{ scale: 1.05 }],
   },
-  voiceInfo: {
-    flex: 1,
+  voiceSliderAvatarText: {
+    fontSize: fontSize.xl,
   },
-  voiceName: {
-    fontSize: fontSize.base,
-    fontWeight: '500',
-    color: theme.colors.text,
-    marginBottom: spacing.xs / 2,
-  },
-  voicePersonality: {
+  voiceSliderName: {
     fontSize: fontSize.sm,
+    fontWeight: '500',
     color: theme.colors.textSecondary,
+    textAlign: 'center',
+  },
+  voiceSliderNameSelected: {
+    color: theme.colors.primary,
+    fontWeight: '600',
   },
   whenCard: {
     marginBottom: spacing.lg,

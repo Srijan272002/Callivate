@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
+  Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,40 +29,36 @@ interface OnboardingSlide {
   description: string;
   icon: string;
   color: string;
+  image: any;
 }
 
 const onboardingData: OnboardingSlide[] = [
   {
     id: '1',
     title: 'AI-Powered Reminders',
-    subtitle: 'Never forget again',
-    description: 'Get personalized voice calls from our AI assistant to remind you of important tasks and habits.',
+    subtitle: 'Never miss what matters most',
+    description: 'Get personalized AI voice calls that remind you about your tasks and goals at the perfect time. Choose from multiple AI voices for a truly personal experience.',
     icon: 'call',
-    color: '#6366f1',
+    color: '#667eea',
+    image: require('../../assets/ai-powered-reminder.png'),
   },
   {
     id: '2',
     title: 'Smart Scheduling',
-    subtitle: 'Perfect timing',
-    description: 'Set custom schedules that adapt to your lifestyle with intelligent recurring reminders.',
-    icon: 'time',
-    color: '#8b5cf6',
+    subtitle: 'Intelligent time management',
+    description: 'Our AI learns your habits and schedules reminders when you\'re most likely to take action. Set it once and let intelligence handle the rest.',
+    icon: 'calendar',
+    color: '#f093fb',
+    image: require('../../assets/smart-scheduling.png'),
   },
   {
     id: '3',
     title: 'Track Your Progress',
-    subtitle: 'See your growth',
-    description: 'Monitor your habits with detailed analytics and celebrate your streak achievements.',
+    subtitle: 'See your growth every day',
+    description: 'Beautiful analytics and insights help you understand your productivity patterns and celebrate your wins with detailed progress tracking.',
     icon: 'analytics',
-    color: '#06b6d4',
-  },
-  {
-    id: '4',
-    title: 'Personalized Experience',
-    subtitle: 'Made for you',
-    description: 'Choose from different AI voices and customize your reminder experience to fit your preferences.',
-    icon: 'person',
-    color: '#10b981',
+    color: '#4facfe',
+    image: require('../../assets/track-your-progress.png'),
   },
 ];
 
@@ -146,19 +143,61 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }
       >
         {onboardingData.map((slide, index) => (
           <View key={slide.id} style={styles.slide}>
-            <Card style={styles.slideCard} shadow="lg">
-              {/* Icon */}
-              <View style={[styles.iconContainer, { backgroundColor: slide.color + '20' }]}>
-                <Ionicons name={slide.icon as any} size={64} color={slide.color} />
-              </View>
+            {/* Illustration Container */}
+            <View style={styles.illustrationContainer}>
+              <Image 
+                source={slide.image} 
+                style={styles.illustrationImage}
+                resizeMode="contain"
+              />
+            </View>
 
-              {/* Content */}
-              <View style={styles.slideContent}>
-                <Text style={styles.slideTitle}>{slide.title}</Text>
-                <Text style={styles.slideSubtitle}>{slide.subtitle}</Text>
-                <Text style={styles.slideDescription}>{slide.description}</Text>
+            {/* Content */}
+            <View style={styles.slideContent}>
+              <Text style={styles.slideTitle}>{slide.title}</Text>
+              <Text style={[styles.slideSubtitle, { color: slide.color }]}>{slide.subtitle}</Text>
+              <Text style={styles.slideDescription}>{slide.description}</Text>
+              
+              {/* Feature highlights */}
+              <View style={styles.highlightsContainer}>
+                {slide.id === '1' && (
+                  <>
+                    <View style={styles.highlight}>
+                      <View style={[styles.highlightDot, { backgroundColor: slide.color }]} />
+                      <Text style={styles.highlightText}>Smart AI voice calls</Text>
+                    </View>
+                    <View style={styles.highlight}>
+                      <View style={[styles.highlightDot, { backgroundColor: slide.color }]} />
+                      <Text style={styles.highlightText}>Multiple voice options</Text>
+                    </View>
+                  </>
+                )}
+                {slide.id === '2' && (
+                  <>
+                    <View style={styles.highlight}>
+                      <View style={[styles.highlightDot, { backgroundColor: slide.color }]} />
+                      <Text style={styles.highlightText}>Learns your habits</Text>
+                    </View>
+                    <View style={styles.highlight}>
+                      <View style={[styles.highlightDot, { backgroundColor: slide.color }]} />
+                      <Text style={styles.highlightText}>Perfect timing</Text>
+                    </View>
+                  </>
+                )}
+                {slide.id === '3' && (
+                  <>
+                    <View style={styles.highlight}>
+                      <View style={[styles.highlightDot, { backgroundColor: slide.color }]} />
+                      <Text style={styles.highlightText}>Progress analytics</Text>
+                    </View>
+                    <View style={styles.highlight}>
+                      <View style={[styles.highlightDot, { backgroundColor: slide.color }]} />
+                      <Text style={styles.highlightText}>Streak tracking</Text>
+                    </View>
+                  </>
+                )}
               </View>
-            </Card>
+            </View>
           </View>
         ))}
       </ScrollView>
@@ -212,22 +251,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }
       </View>
 
       {/* Features Preview */}
-      <View style={styles.featuresPreview}>
-        <View style={styles.featuresList}>
-          <View style={styles.featureItem}>
-            <Ionicons name="checkmark-circle" size={16} color={theme.colors.success} />
-            <Text style={styles.featureText}>Free to get started</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Ionicons name="checkmark-circle" size={16} color={theme.colors.success} />
-            <Text style={styles.featureText}>No credit card required</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Ionicons name="checkmark-circle" size={16} color={theme.colors.success} />
-            <Text style={styles.featureText}>Start in under 2 minutes</Text>
-          </View>
-        </View>
-      </View>
+     
     </SafeAreaView>
   );
 };
@@ -259,9 +283,8 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
   slide: {
     width: screenWidth,
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
   },
   slideCard: {
     width: '100%',
@@ -278,8 +301,10 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     marginBottom: spacing['2xl'],
   },
   slideContent: {
+    flex: 0.4,
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    maxWidth: 300,
+    paddingHorizontal: spacing.md,
   },
   slideTitle: {
     fontSize: fontSize['2xl'],
@@ -335,6 +360,7 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     borderRadius: borderRadius.lg,
     backgroundColor: theme.colors.surface,
     gap: spacing.sm,
+    minWidth: 100,
   },
   secondaryButtonText: {
     fontSize: fontSize.base,
@@ -348,10 +374,11 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.lg,
     backgroundColor: theme.colors.primary,
     gap: spacing.sm,
+    minWidth: 100,
   },
   nextButtonText: {
     fontSize: fontSize.base,
@@ -359,7 +386,9 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     fontWeight: '600',
   },
   primaryButton: {
-    minWidth: 120,
+    minWidth: 100,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   featuresPreview: {
     paddingHorizontal: spacing.lg,
@@ -376,5 +405,62 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
   featureText: {
     fontSize: fontSize.sm,
     color: theme.colors.textSecondary,
+  },
+  illustrationContainer: {
+    flex: 0.6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+  },
+  illustrationPlaceholder: {
+    width: screenWidth * 0.7,
+    height: 280,
+    backgroundColor: theme.colors.surface,
+    borderRadius: borderRadius['2xl'],
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  iconWrapper: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  placeholderText: {
+    fontSize: fontSize.sm,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    opacity: 0.7,
+  },
+  highlightsContainer: {
+    marginTop: spacing.xl,
+    gap: spacing.md,
+    width: '100%',
+  },
+  highlight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  highlightDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: spacing.md,
+  },
+  highlightText: {
+    fontSize: fontSize.base,
+    color: theme.colors.text,
+    fontWeight: '500',
+  },
+  illustrationImage: {
+    width: screenWidth * 0.9,
+    height: 300,
   },
 }); 

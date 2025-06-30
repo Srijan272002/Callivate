@@ -19,7 +19,7 @@ import { Button, Card, Badge, ProgressBar, Text } from '../components/ui';
 import { Task, RootStackParamList, MainTabParamList } from '../types';
 
 type NavigationProp = CompositeNavigationProp<
-  BottomTabNavigationProp<MainTabParamList, 'Dashboard'>,
+  BottomTabNavigationProp<MainTabParamList, 'ToDoList'>,
   StackNavigationProp<RootStackParamList>
 >;
 
@@ -71,7 +71,7 @@ const mockStats = {
   totalTasksToday: 3,
 };
 
-export const DashboardScreen: React.FC = () => {
+export const ToDoListScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { theme, isDark } = useTheme();
@@ -139,6 +139,9 @@ export const DashboardScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Empty Header Section */}
+      <View style={styles.header} />
+      
       <ScrollView 
         style={styles.content}
         refreshControl={
@@ -309,6 +312,10 @@ export const DashboardScreen: React.FC = () => {
 const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  header: {
+    height: 60,
     backgroundColor: theme.colors.background,
   },
   content: {

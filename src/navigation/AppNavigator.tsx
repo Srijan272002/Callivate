@@ -14,12 +14,14 @@ import {
   SplashScreen,
   OnboardingScreen,
   LoginScreen,
-  DashboardScreen,
+  ToDoListScreen,
   CalendarScreen,
   AnalyticsScreen,
   NotesScreen,
   SettingsScreen,
   CreateTaskScreen,
+  PrivacyPolicyScreen,
+  TermsOfServiceScreen,
 } from '../screens';
 
 // Import hooks and components
@@ -38,8 +40,8 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
 
   const getIconName = (routeName: string, focused: boolean) => {
     switch (routeName) {
-      case 'Dashboard':
-        return focused ? 'home' : 'home-outline';
+      case 'ToDoList':
+        return focused ? 'list' : 'list-outline';
       case 'Calendar':
         return focused ? 'calendar' : 'calendar-outline';
       case 'CreateTask':
@@ -133,13 +135,13 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
 const MainTabNavigator = () => {
   return (
     <MainTab.Navigator
-      initialRouteName="CreateTask"
+      initialRouteName="ToDoList"
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
       }}
     >
-      <MainTab.Screen name="Dashboard" component={DashboardScreen} />
+      <MainTab.Screen name="ToDoList" component={ToDoListScreen} />
       <MainTab.Screen name="Calendar" component={CalendarScreen} />
       <MainTab.Screen name="CreateTask" component={CreateTaskScreen} />
       <MainTab.Screen name="Notes" component={NotesScreen} />
@@ -186,6 +188,22 @@ const AppNavigator = () => {
               component={CreateTaskScreen}
               options={{
                 presentation: 'modal',
+                headerShown: false,
+              }}
+            />
+            <RootStack.Screen 
+              name="PrivacyPolicy" 
+              component={PrivacyPolicyScreen}
+              options={{
+                presentation: 'card',
+                headerShown: false,
+              }}
+            />
+            <RootStack.Screen 
+              name="TermsOfService" 
+              component={TermsOfServiceScreen}
+              options={{
+                presentation: 'card',
                 headerShown: false,
               }}
             />

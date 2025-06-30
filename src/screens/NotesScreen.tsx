@@ -358,6 +358,8 @@ export const NotesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Empty Header Section */}
+      <View style={{ height: 60, backgroundColor: theme.colors.background }} />
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Notes</Text>

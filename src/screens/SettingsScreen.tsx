@@ -12,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { spacing, borderRadius, fontSize } from '../styles/theme';
-import { Card, Button, Badge, Text, ThemeToggle } from '../components/ui';
+import { Card, Button, Badge, Text } from '../components/ui';
 import { Voice, UserSettings } from '../types';
 import { useAuth } from '../hooks/useAuth';
 
@@ -204,8 +204,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
   
   // Local settings state
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
 
   // Create dynamic styles based on current theme
   const styles = React.useMemo(() => createStyles(theme, isDark), [theme, isDark]);
@@ -234,27 +232,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
 
   const settingSections = [
     {
-      title: 'Account',
-      items: [
-        {
-          id: 'profile',
-          title: 'Profile Settings',
-          subtitle: 'Manage your account information',
-          icon: 'person-outline',
-          type: 'navigation' as const,
-          onPress: () => console.log('Navigate to profile'),
-        },
-        {
-          id: 'subscription',
-          title: 'Subscription',
-          subtitle: 'Manage your premium features',
-          icon: 'diamond-outline',
-          type: 'navigation' as const,
-          onPress: () => console.log('Navigate to subscription'),
-        },
-      ],
-    },
-    {
       title: 'Notifications',
       items: [
         {
@@ -266,65 +243,26 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
           value: notificationsEnabled,
           onToggle: setNotificationsEnabled,
         },
-        {
-          id: 'sound',
-          title: 'Sound Effects',
-          subtitle: 'Play sounds for interactions',
-          icon: 'volume-high-outline',
-          type: 'toggle' as const,
-          value: soundEnabled,
-          onToggle: setSoundEnabled,
-        },
       ],
     },
     {
-      title: 'Privacy',
+      title: 'Legal',
       items: [
         {
-          id: 'analytics',
-          title: 'Analytics & Improvement',
-          subtitle: 'Help us improve the app',
-          icon: 'analytics-outline',
-          type: 'toggle' as const,
-          value: analyticsEnabled,
-          onToggle: setAnalyticsEnabled,
-        },
-        {
-          id: 'data',
-          title: 'Data & Privacy',
-          subtitle: 'Manage your data preferences',
+          id: 'privacy',
+          title: 'Privacy Policy',
+          subtitle: 'View our privacy policy',
           icon: 'shield-checkmark-outline',
           type: 'navigation' as const,
-          onPress: () => console.log('Navigate to privacy'),
-        },
-      ],
-    },
-    {
-      title: 'Support',
-      items: [
-        {
-          id: 'help',
-          title: 'Help & Support',
-          subtitle: 'Get help and contact support',
-          icon: 'help-circle-outline',
-          type: 'navigation' as const,
-          onPress: () => console.log('Navigate to help'),
+          onPress: () => navigation?.navigate('PrivacyPolicy'),
         },
         {
-          id: 'feedback',
-          title: 'Send Feedback',
-          subtitle: 'Share your thoughts and suggestions',
-          icon: 'chatbubble-outline',
+          id: 'terms',
+          title: 'Terms of Service',
+          subtitle: 'View our terms of service',
+          icon: 'document-text-outline',
           type: 'navigation' as const,
-          onPress: () => console.log('Navigate to feedback'),
-        },
-        {
-          id: 'about',
-          title: 'About Callivate',
-          subtitle: 'Version 1.0.0',
-          icon: 'information-circle-outline',
-          type: 'navigation' as const,
-          onPress: () => console.log('Navigate to about'),
+          onPress: () => navigation?.navigate('TermsOfService'),
         },
       ],
     },
@@ -393,7 +331,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Settings</Text>
+       
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -414,27 +352,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
           </Card>
         )}
 
-        {/* Theme Toggle */}
-        <Card style={styles.themeCard} shadow="sm">
-          <View style={styles.themeSection}>
-            <View style={styles.settingLeft}>
-              <View style={styles.settingIcon}>
-                <Ionicons 
-                  name={isDark ? "moon" : "sunny"} 
-                  size={22} 
-                  color={theme.colors.primary} 
-                />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Appearance</Text>
-                <Text style={styles.settingSubtitle}>
-                  {isDark ? 'Dark mode' : 'Light mode'}
-                </Text>
-              </View>
-            </View>
-            <ThemeToggle />
-          </View>
-        </Card>
+
 
         {/* Settings Sections */}
         {settingSections.map((section, sectionIndex) => (
@@ -527,14 +445,7 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     fontSize: fontSize.base,
     color: theme.colors.textSecondary,
   },
-  themeCard: {
-    marginBottom: spacing.lg,
-  },
-  themeSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+
   sectionCard: {
     marginBottom: spacing.lg,
   },
