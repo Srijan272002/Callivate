@@ -81,14 +81,21 @@ export interface CalendarDay {
 
 // Navigation types
 export type RootStackParamList = {
-  Splash: undefined;
+  NewSplash: undefined;
   Onboarding: undefined;
+  Loading: {
+    messages?: string[];
+    nextScreen: string;
+    duration?: number;
+    simple?: boolean;
+  };
   Login: undefined;
   Main: undefined;
   Analytics: undefined;
   EditTask: { taskId: string };
   PrivacyPolicy: undefined;
   TermsOfService: undefined;
+  NotificationPermission: undefined;
 };
 
 export type MainTabParamList = {

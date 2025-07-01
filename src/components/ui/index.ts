@@ -6,4 +6,5 @@ export { Input } from './Input';
 export { Badge } from './Badge';
 export { ProgressBar } from './ProgressBar';
 export { GoogleIcon } from './GoogleIcon';
+export { ModernLoading } from './ModernLoading';
  

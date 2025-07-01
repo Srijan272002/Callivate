@@ -11,7 +11,8 @@ import { RootStackParamList, MainTabParamList } from '../types';
 
 // Import screens
 import {
-  SplashScreen,
+  NewSplashScreen,
+  LoadingScreen,
   OnboardingScreen,
   LoginScreen,
   ToDoListScreen,
@@ -22,6 +23,7 @@ import {
   CreateTaskScreen,
   PrivacyPolicyScreen,
   TermsOfServiceScreen,
+  NotificationPermissionScreen,
 } from '../screens';
 
 // Import hooks and components
@@ -151,8 +153,18 @@ const MainTabNavigator = () => {
 };
 
 const AppNavigator = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const { theme } = useTheme();
+  const [isSplashFinished, setIsSplashFinished] = React.useState(false);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+        setIsSplashFinished(true);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const loading = authLoading || !isSplashFinished;
 
   return (
     <NavigationContainer>
@@ -160,11 +172,25 @@ const AppNavigator = () => {
         screenOptions={{
           headerShown: false,
           cardStyle: { backgroundColor: theme.colors.background },
+          cardStyleInterpolator: ({ current, layouts }) => {
+            return {
+              cardStyle: {
+                transform: [
+                  {
+                    translateX: current.progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [layouts.screen.width, 0],
+                    }),
+                  },
+                ],
+              },
+            };
+          },
         }}
       >
         {loading ? (
-          // Show splash screen while checking authentication
-          <RootStack.Screen name="Splash" component={SplashScreen} />
+          // Show new splash screen while checking authentication or splash is running
+          <RootStack.Screen name="NewSplash" component={NewSplashScreen} />
         ) : isAuthenticated ? (
           // User is authenticated, show main app with modal screens
           <>
@@ -209,9 +235,12 @@ const AppNavigator = () => {
             />
           </>
         ) : (
-          // User is not authenticated, show auth flow
+          // User is not authenticated, show new app flow
           <>
+            <RootStack.Screen name="NewSplash" component={NewSplashScreen} />
             <RootStack.Screen name="Onboarding" component={OnboardingScreen} />
+            <RootStack.Screen name="NotificationPermission" component={NotificationPermissionScreen} />
+            <RootStack.Screen name="Loading" component={LoadingScreen} />
             <RootStack.Screen name="Login" component={LoginScreen} />
           </>
         )}

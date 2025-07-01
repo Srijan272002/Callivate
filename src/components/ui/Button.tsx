@@ -171,7 +171,8 @@ export const Button: React.FC<ButtonProps> = ({
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{ scale: scale.value }],
-      opacity: opacity.value,
+      // Remove opacity from here to avoid conflicts with potential layout animations
+      // opacity: opacity.value,
     };
   });
 
@@ -181,6 +182,8 @@ export const Button: React.FC<ButtonProps> = ({
         damping: 15,
         stiffness: 300,
       });
+      // Use simpler opacity animation to avoid conflicts
+      opacity.value = withTiming(0.8, { duration: 100 });
     }
   };
 
@@ -190,6 +193,7 @@ export const Button: React.FC<ButtonProps> = ({
         damping: 15,
         stiffness: 300,
       });
+      opacity.value = withTiming(1, { duration: 100 });
     }
   };
 
@@ -200,23 +204,31 @@ export const Button: React.FC<ButtonProps> = ({
     }
   };
 
+  // Create a separate animated style for opacity to avoid conflicts
+  const opacityStyle = useAnimatedStyle(() => {
+    return {
+      opacity: opacity.value,
+    };
+  });
+
   return (
-    <AnimatedTouchableOpacity
-      style={[getButtonStyle(), animatedStyle, style]}
-      onPress={handlePress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      disabled={disabled || loading}
-      activeOpacity={0.8}
-      accessibilityRole={accessibilityRole}
-      accessibilityLabel={accessibilityLabel || title}
-      accessibilityHint={accessibilityHint}
-      accessibilityState={{
-        disabled: disabled || loading,
-        busy: loading,
-      }}
-      {...props}
-    >
+    <Animated.View style={[opacityStyle]}>
+      <AnimatedTouchableOpacity
+        style={[getButtonStyle(), animatedStyle, style]}
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={disabled || loading}
+        activeOpacity={1} // Disable built-in activeOpacity since we handle it manually
+        accessibilityRole={accessibilityRole}
+        accessibilityLabel={accessibilityLabel || title}
+        accessibilityHint={accessibilityHint}
+        accessibilityState={{
+          disabled: disabled || loading,
+          busy: loading,
+        }}
+        {...props}
+      >
       {loading ? (
         <ActivityIndicator 
           size="small" 
@@ -237,6 +249,7 @@ export const Button: React.FC<ButtonProps> = ({
           )}
         </>
       )}
-    </AnimatedTouchableOpacity>
+      </AnimatedTouchableOpacity>
+    </Animated.View>
   );
 }; 

@@ -133,35 +133,73 @@ export const Card: React.FC<CardProps> = ({
 
   // If card is pressable, use TouchableOpacity
   if (pressable || onPress) {
-    const Component = animated ? AnimatedTouchableOpacity : TouchableOpacity;
+    if (animated) {
+      // Wrap with animated container to avoid opacity conflicts
+      return (
+        <AnimatedView
+          entering={getAnimationEntering()}
+          style={style}
+          {...props}
+        >
+          <TouchableOpacity
+            style={getCardStyle()}
+            onPress={onPress}
+            activeOpacity={0.95}
+            accessibilityRole={accessibilityRole === 'none' ? 'button' : accessibilityRole}
+            accessibilityLabel={accessibilityLabel}
+            accessibilityHint={accessibilityHint}
+          >
+            {children}
+          </TouchableOpacity>
+        </AnimatedView>
+      );
+    } else {
+      return (
+        <TouchableOpacity
+          style={[getCardStyle(), style]}
+          onPress={onPress}
+          activeOpacity={0.95}
+          accessibilityRole={accessibilityRole === 'none' ? 'button' : accessibilityRole}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
+          {...props}
+        >
+          {children}
+        </TouchableOpacity>
+      );
+    }
+  }
+
+  // Regular non-pressable card
+  if (animated) {
+    // Wrap with animated container to avoid opacity conflicts
     return (
-      <Component
+      <AnimatedView
+        entering={getAnimationEntering()}
+        style={style}
+        {...props}
+      >
+        <View
+          style={getCardStyle()}
+          accessibilityRole={accessibilityRole}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
+        >
+          {children}
+        </View>
+      </AnimatedView>
+    );
+  } else {
+    return (
+      <View
         style={[getCardStyle(), style]}
-        onPress={onPress}
-        activeOpacity={0.95}
-        entering={animated ? getAnimationEntering() : undefined}
-        accessibilityRole={accessibilityRole === 'none' ? 'button' : accessibilityRole}
+        accessibilityRole={accessibilityRole}
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={accessibilityHint}
         {...props}
       >
         {children}
-      </Component>
+      </View>
     );
   }
-
-  // Regular non-pressable card
-  const Component = animated ? AnimatedView : View;
-  return (
-    <Component
-      style={[getCardStyle(), style]}
-      entering={animated ? getAnimationEntering() : undefined}
-      accessibilityRole={accessibilityRole}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityHint={accessibilityHint}
-      {...props}
-    >
-      {children}
-    </Component>
-  );
 }; 

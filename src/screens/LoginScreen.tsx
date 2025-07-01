@@ -29,8 +29,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       const result = await signIn();
       if (!result.success) {
         Alert.alert('Sign In Failed', result.error || 'Failed to sign in with Google');
+        return;
       }
-      // Navigation will be handled by auth state change
+      // Navigate to loading screen with welcome message
+      navigation?.navigate('Loading', {
+        messages: ['Setting up your workspace...', 'Loading your tasks...', 'Almost ready...'],
+        nextScreen: 'Main',
+        duration: 2500,
+      });
     } catch (error: any) {
       Alert.alert('Sign In Failed', error.message || 'Failed to sign in with Google');
     }

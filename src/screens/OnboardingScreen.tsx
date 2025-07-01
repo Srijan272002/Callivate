@@ -100,11 +100,11 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }
   };
 
   const handleGetStarted = () => {
-    navigation?.replace('Login');
+    navigation?.navigate('NotificationPermission');
   };
 
   const handleSkip = () => {
-    navigation?.replace('Login');
+    navigation?.navigate('NotificationPermission');
   };
 
   const onScroll = (event: any) => {

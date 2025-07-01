@@ -119,20 +119,20 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
     if (!validateForm()) return;
 
     setSaving(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const selectedVoice = mockVoices.find(v => v.id === form.voiceId);
-      Alert.alert(
-        '🎉 Reminder Scheduled!',
-        `${selectedVoice?.name || 'Your AI'} will call you about "${form.title}" on ${formatDateTime(form.scheduledTime)}.`,
-        [{ text: 'Perfect!', onPress: () => navigation?.goBack() }]
-      );
-    } catch (error) {
-      Alert.alert('Oops! 😅', 'Something went wrong. Please try again.');
-    } finally {
-      setSaving(false);
-    }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setSaving(false);
+
+    Alert.alert(
+      'Success!',
+      'Your AI-powered reminder has been scheduled successfully.',
+      [
+        {
+          text: 'Great!',
+          onPress: () => navigation.navigate('ToDoList'),
+        },
+      ]
+    );
   };
 
   const handleTimeChange = (event: any, selectedTime?: Date) => {
@@ -200,14 +200,14 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
       {/* Modern Header */}
       <View style={styles.header}>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}></Text>
-          <Text style={styles.headerSubtitle}></Text>
+          <Text style={styles.headerTitle}>Create Reminder</Text>
+          <Text style={styles.headerSubtitle}>Schedule your AI assistant call</Text>
         </View>
         <TouchableOpacity 
           onPress={() => navigation?.goBack()}
           style={styles.closeButton}
         >
-          
+          <Ionicons name="close" size={24} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
 

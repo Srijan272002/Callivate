@@ -95,10 +95,7 @@ export const ToDoListScreen: React.FC = () => {
     navigation.navigate('CreateTask');
   };
 
-  const handleAnalytics = () => {
-    // Navigate to Analytics screen
-    navigation.navigate('Analytics');
-  };
+
 
   const handleTaskToggle = (taskId: string) => {
     setTasks(prevTasks =>
@@ -280,29 +277,7 @@ export const ToDoListScreen: React.FC = () => {
           )}
         </Card>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.quickAction} onPress={handleAnalytics}>
-            <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.primary + '10' }]}>
-              <Ionicons name="bar-chart" size={24} color={theme.colors.primary} />
-            </View>
-            <Text style={styles.quickActionText}>View Analytics</Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quickAction} onPress={handleCreateTask}>
-            <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.success + '10' }]}>
-              <Ionicons name="add-circle" size={24} color={theme.colors.success} />
-            </View>
-            <Text style={styles.quickActionText}>Quick Task</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.quickAction}>
-            <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.warning + '10' }]}>
-              <Ionicons name="notifications" size={24} color={theme.colors.warning} />
-            </View>
-            <Text style={styles.quickActionText}>Reminders</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -488,25 +463,5 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
   taskAction: {
     padding: spacing.sm,
   },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: spacing.lg,
-  },
-  quickAction: {
-    alignItems: 'center',
-  },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  quickActionText: {
-    fontSize: fontSize.sm,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-  },
+
 }); 

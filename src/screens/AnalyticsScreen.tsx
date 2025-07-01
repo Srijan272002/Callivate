@@ -137,9 +137,9 @@ export const AnalyticsScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}></Text>
+        <Text style={styles.headerTitle}>Analytics</Text>
         <Badge variant="info" size="sm">
           {mockAnalytics.month} {mockAnalytics.year}
         </Badge>
