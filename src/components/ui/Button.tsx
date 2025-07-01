@@ -213,22 +213,22 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <Animated.View style={[opacityStyle]}>
-      <AnimatedTouchableOpacity
-        style={[getButtonStyle(), animatedStyle, style]}
-        onPress={handlePress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        disabled={disabled || loading}
+    <AnimatedTouchableOpacity
+      style={[getButtonStyle(), animatedStyle, style]}
+      onPress={handlePress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      disabled={disabled || loading}
         activeOpacity={1} // Disable built-in activeOpacity since we handle it manually
-        accessibilityRole={accessibilityRole}
-        accessibilityLabel={accessibilityLabel || title}
-        accessibilityHint={accessibilityHint}
-        accessibilityState={{
-          disabled: disabled || loading,
-          busy: loading,
-        }}
-        {...props}
-      >
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel || title}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{
+        disabled: disabled || loading,
+        busy: loading,
+      }}
+      {...props}
+    >
       {loading ? (
         <ActivityIndicator 
           size="small" 
@@ -249,7 +249,7 @@ export const Button: React.FC<ButtonProps> = ({
           )}
         </>
       )}
-      </AnimatedTouchableOpacity>
+    </AnimatedTouchableOpacity>
     </Animated.View>
   );
 }; 

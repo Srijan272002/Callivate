@@ -16,8 +16,9 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { fontSize, spacing, borderRadius } from '../styles/theme';
 import { useTheme } from '../hooks/useTheme';
-import { Button, Card } from '../components/ui';
+import { Button, Card, Toast } from '../components/ui';
 import { CreateTaskForm, Voice } from '../types';
+import { TaskService } from '../services';
 
 const { width } = Dimensions.get('window');
 
@@ -77,6 +78,7 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [titleFocused, setTitleFocused] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
   
   // Animation values
   const fadeAnim = useState(new Animated.Value(0))[0];
@@ -119,20 +121,24 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
     if (!validateForm()) return;
 
     setSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setSaving(false);
-
-    Alert.alert(
-      'Success!',
-      'Your AI-powered reminder has been scheduled successfully.',
-      [
-        {
-          text: 'Great!',
-          onPress: () => navigation.navigate('ToDoList'),
-        },
-      ]
-    );
+    try {
+      // Create the task using TaskService
+      const task = await TaskService.createTask(form);
+      
+      // Show success toast
+      setShowSuccessToast(true);
+      
+      // Wait for toast to show, then navigate to notification permission
+      setTimeout(() => {
+        navigation?.navigate('NotificationPermission');
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Failed to create task:', error);
+      Alert.alert('Oops! 😅', 'Something went wrong. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleTimeChange = (event: any, selectedTime?: Date) => {
@@ -197,18 +203,19 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Success Toast */}
+      <Toast
+        message="🎉 Task created successfully!"
+        visible={showSuccessToast}
+        onHide={() => setShowSuccessToast(false)}
+        type="success"
+        duration={1500}
+      />
+
       {/* Modern Header */}
       <View style={styles.header}>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Create Reminder</Text>
-          <Text style={styles.headerSubtitle}>Schedule your AI assistant call</Text>
-        </View>
-        <TouchableOpacity 
-          onPress={() => navigation?.goBack()}
-          style={styles.closeButton}
-        >
-          <Ionicons name="close" size={24} color={theme.colors.text} />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}></Text>
+        <Text style={styles.headerSubtitle}></Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>

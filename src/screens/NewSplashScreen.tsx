@@ -51,11 +51,11 @@ export const NewSplashScreen: React.FC<NewSplashScreenProps> = ({ navigation }) 
     ]).start();
 
     // Navigate after 3 seconds
-    /* const timer = setTimeout(() => {
+    const timer = setTimeout(() => {
       navigation?.replace('Onboarding');
     }, 3000);
 
-    return () => clearTimeout(timer); */
+    return () => clearTimeout(timer);
   }, [navigation]);
 
   const logoScale = logoAnim.interpolate({

@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
 // User types
 export interface User {
   id: string;
@@ -82,20 +84,14 @@ export interface CalendarDay {
 // Navigation types
 export type RootStackParamList = {
   NewSplash: undefined;
+  Loading: { simple?: boolean };
   Onboarding: undefined;
-  Loading: {
-    messages?: string[];
-    nextScreen: string;
-    duration?: number;
-    simple?: boolean;
-  };
   Login: undefined;
-  Main: undefined;
+  Main: NavigatorScreenParams<MainTabParamList>;
   Analytics: undefined;
-  EditTask: { taskId: string };
+  NotificationPermission: undefined;
   PrivacyPolicy: undefined;
   TermsOfService: undefined;
-  NotificationPermission: undefined;
 };
 
 export type MainTabParamList = {

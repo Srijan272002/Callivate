@@ -154,19 +154,19 @@ export const Card: React.FC<CardProps> = ({
         </AnimatedView>
       );
     } else {
-      return (
+    return (
         <TouchableOpacity
-          style={[getCardStyle(), style]}
-          onPress={onPress}
-          activeOpacity={0.95}
-          accessibilityRole={accessibilityRole === 'none' ? 'button' : accessibilityRole}
-          accessibilityLabel={accessibilityLabel}
-          accessibilityHint={accessibilityHint}
-          {...props}
-        >
-          {children}
+        style={[getCardStyle(), style]}
+        onPress={onPress}
+        activeOpacity={0.95}
+        accessibilityRole={accessibilityRole === 'none' ? 'button' : accessibilityRole}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        {...props}
+      >
+        {children}
         </TouchableOpacity>
-      );
+    );
     }
   }
 
@@ -190,16 +190,16 @@ export const Card: React.FC<CardProps> = ({
       </AnimatedView>
     );
   } else {
-    return (
+  return (
       <View
-        style={[getCardStyle(), style]}
-        accessibilityRole={accessibilityRole}
-        accessibilityLabel={accessibilityLabel}
-        accessibilityHint={accessibilityHint}
-        {...props}
-      >
-        {children}
+      style={[getCardStyle(), style]}
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      {...props}
+    >
+      {children}
       </View>
-    );
+  );
   }
 }; 

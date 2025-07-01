@@ -21,9 +21,9 @@ import {
   NotesScreen,
   SettingsScreen,
   CreateTaskScreen,
+  NotificationPermissionScreen,
   PrivacyPolicyScreen,
   TermsOfServiceScreen,
-  NotificationPermissionScreen,
 } from '../screens';
 
 // Import hooks and components
@@ -153,18 +153,8 @@ const MainTabNavigator = () => {
 };
 
 const AppNavigator = () => {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const { theme } = useTheme();
-  const [isSplashFinished, setIsSplashFinished] = React.useState(false);
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-        setIsSplashFinished(true);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const loading = authLoading || !isSplashFinished;
 
   return (
     <NavigationContainer>
@@ -189,7 +179,7 @@ const AppNavigator = () => {
         }}
       >
         {loading ? (
-          // Show new splash screen while checking authentication or splash is running
+          // Show new splash screen while checking authentication
           <RootStack.Screen name="NewSplash" component={NewSplashScreen} />
         ) : isAuthenticated ? (
           // User is authenticated, show main app with modal screens
@@ -204,6 +194,14 @@ const AppNavigator = () => {
             <RootStack.Screen 
               name="Analytics" 
               component={AnalyticsScreen}
+              options={{
+                presentation: 'card',
+                headerShown: false,
+              }}
+            />
+            <RootStack.Screen 
+              name="NotificationPermission" 
+              component={NotificationPermissionScreen}
               options={{
                 presentation: 'card',
                 headerShown: false,
@@ -239,7 +237,6 @@ const AppNavigator = () => {
           <>
             <RootStack.Screen name="NewSplash" component={NewSplashScreen} />
             <RootStack.Screen name="Onboarding" component={OnboardingScreen} />
-            <RootStack.Screen name="NotificationPermission" component={NotificationPermissionScreen} />
             <RootStack.Screen name="Loading" component={LoadingScreen} />
             <RootStack.Screen name="Login" component={LoginScreen} />
           </>

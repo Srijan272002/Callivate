@@ -41,12 +41,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           await StorageService.setObject('user', user);
           setUser(user);
           setError(null);
+          setLoading(false);
         } else if (event === 'SIGNED_OUT') {
           console.log('🚪 User signed out via auth state change');
           setUser(null);
           await StorageService.removeItem('user');
           setError(null);
-          setSigningOut(false); // Reset signing out state when sign out completes
+          
+          // Add a small delay to ensure clean state transition
+          setTimeout(() => {
+            setSigningOut(false);
+            setLoading(false);
+          }, 100);
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('🔄 Token refreshed');
           if (session?.user) {
@@ -54,10 +60,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             await StorageService.setObject('user', user);
             setUser(user);
           }
+          setLoading(false);
+        } else if (event === 'INITIAL_SESSION') {
+          // Handle initial session check completion
+          setLoading(false);
         }
         
-        // Always set loading to false after auth state change
-        setLoading(false);
+        // Fallback: always set loading to false after reasonable delay if not handled above
+        setTimeout(() => {
+          setLoading(false);
+        }, 500);
       }
     );
     
@@ -76,8 +88,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (err) {
       console.error('Auth check error:', err);
       setError('Failed to check authentication status');
+      setUser(null); // Ensure user is cleared on error
     } finally {
-      setLoading(false);
+      // Add a minimum delay to prevent flash
+      setTimeout(() => {
+        setLoading(false);
+      }, 100);
     }
   };
 
@@ -108,15 +124,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signOut = async (): Promise<void> => {
     try {
       console.log('🔄 Starting signOut process...');
-      setSigningOut(true); // Use separate signing out state
+      setSigningOut(true);
       setError(null);
+      // Don't set loading here as we have a separate signingOut state
 
       const result = await AuthService.signOut();
       console.log('📋 SignOut result:', result);
       
       if (result.success) {
         console.log('✅ SignOut successful, clearing user state');
-        setUser(null);
+        // Don't clear user state here - let the auth state change handle it
+        // This prevents race conditions and ensures consistency
       } else {
         console.error('❌ SignOut failed:', result.error);
         setError(result.error || 'Sign out failed');

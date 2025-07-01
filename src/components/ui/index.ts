@@ -7,4 +7,5 @@ export { Badge } from './Badge';
 export { ProgressBar } from './ProgressBar';
 export { GoogleIcon } from './GoogleIcon';
 export { ModernLoading } from './ModernLoading';
+export { Toast } from './Toast';
  

@@ -100,11 +100,19 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }
   };
 
   const handleGetStarted = () => {
-    navigation?.navigate('NotificationPermission');
+    navigation?.navigate('Loading', {
+      nextScreen: 'Login',
+      duration: 1500, // Quick simple loading
+      simple: true, // Use simple loading mode
+    });
   };
 
   const handleSkip = () => {
-    navigation?.navigate('NotificationPermission');
+    navigation?.navigate('Loading', {
+      nextScreen: 'Login',
+      duration: 1500, // Quick simple loading
+      simple: true, // Use simple loading mode
+    });
   };
 
   const onScroll = (event: any) => {
