@@ -1,0 +1,70 @@
+# FastAPI and ASGI server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.1
+pydantic-settings==2.1.0
+
+# Database and ORM
+supabase==2.0.2
+asyncpg==0.29.0
+sqlalchemy==2.0.23
+alembic==1.13.0
+
+# Authentication and Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# HTTP and API
+httpx==0.25.2
+requests==2.31.0
+aiofiles==23.2.1
+
+# AI Services (Required)
+google-generativeai==0.3.2
+
+# Optional Voice Services (Free tiers available)
+elevenlabs==0.2.26
+
+# Optional Call Services
+twilio==8.11.0
+
+# Background Processing (Optional - can use local Redis)
+celery==5.3.4
+redis==5.0.1
+
+# Optional Google Cloud Services (requires billing)
+google-cloud-texttospeech==2.16.3
+google-cloud-speech==2.21.0
+
+# Optional Firebase (requires credit card verification)
+firebase-admin==6.4.0
+
+# Expo SDK for push notifications (FREE)
+exponent-server-sdk==2.0.0
+
+# Data Processing and Validation
+python-dateutil==2.8.2
+pytz==2023.3
+validators==0.22.0
+
+# Environment and Configuration
+python-dotenv==1.0.0
+
+# Development and Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-mock==3.12.0
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.7.1
+
+# Logging and Monitoring
+structlog==23.2.0
+
+# Expo Push Notifications (FREE - Primary notification service)
+exponent-server-sdk>=2.0.0,<3.0.0  # Expo notifications (completely free)
+
+# Twilio (Required for AI Voice Calls - Core Feature)
+twilio>=8.2.0,<9.0.0  # Voice calling and SMS capabilities 

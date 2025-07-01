@@ -139,10 +139,13 @@
   - [ ] Silent mode configuration
   - [ ] Notification settings
   - [ ] Privacy controls
-- [ ] **Voice Selection Screen**
-  - [ ] Preloaded AI voice templates
-  - [ ] Voice preview functionality
-  - [ ] Voice testing interface
+- [ ] **Enhanced Voice Selection Screen**
+  - [ ] Voice categories (Professional, Casual, International)
+  - [ ] Voice preview with sample phrases
+  - [ ] Personality-based filtering (friendly, professional, energetic, calm)
+  - [ ] Favorite voices management
+  - [ ] Voice provider indicators (Google, ElevenLabs, OpenAI)
+  - [ ] Premium vs free voice badges
 - [ ] **Privacy Controls**
   - [ ] Clear call history
   - [ ] Reset streaks confirmation
@@ -234,17 +237,20 @@
 
 ### **Phase 6: Backend Development** *(Week 9-11)*
 
-#### 6.1 FastAPI Backend Setup
-- [ ] **Project Structure**
-  - [ ] Initialize FastAPI project
-  - [ ] Set up virtual environment
-  - [ ] Configure dependencies (requirements.txt)
-  - [ ] Database models and schemas
-- [ ] **Database Schema**
-  - [ ] Supabase table creation
-  - [ ] Users, Tasks, Notes, Voices, Streaks, Analytics tables
-  - [ ] Relationships and constraints
-  - [ ] Database migrations
+#### 6.1 FastAPI Backend Setup ✅ **COMPLETED & UPDATED**
+- [x] **Project Structure**
+  - [x] Initialize FastAPI project
+  - [x] Set up virtual environment
+  - [x] Configure dependencies (requirements.txt)
+  - [x] Database models and schemas
+- [x] **Enhanced Database Schema**
+  - [x] Supabase table creation and optimization
+  - [x] Core tables: Users, Tasks, Notes, Streaks, Analytics
+  - [x] Enhanced tables: Voices, UserSettings, SyncQueue, NotificationLog
+  - [x] Voice provider and preference tracking
+  - [x] Sync metadata and conflict resolution fields
+  - [x] Relationships and constraints
+  - [x] Database migrations and indexing
 
 #### 6.2 Core API Endpoints
 - [ ] **Authentication Endpoints**
@@ -261,23 +267,49 @@
   - [ ] Analytics data aggregation
   - [ ] Monthly report generation
   - [ ] Calendar data endpoints
+- [ ] **User Settings APIs**
+  - [ ] `GET/PUT /users/{userId}/settings` - Settings CRUD
+  - [ ] Default voice preferences
+  - [ ] Notification preferences
+  - [ ] Time format preferences
+- [ ] **Sync API Endpoints**
+  - [ ] `POST /sync/queue` - Batch sync queue items
+  - [ ] `GET /sync/status/{userId}` - Get sync status
+  - [ ] `POST /sync/resolve-conflicts` - Handle data conflicts
+  - [ ] Sync metadata tracking (timestamps, retry counts)
 
-#### 6.3 Voice & AI Integration
+#### 6.3 Voice & AI Integration 🆓 **FREE-FIRST APPROACH**
 - [ ] **Gemini AI Integration**
-  - [ ] Configure Gemini 1.5 Pro API
+  - [ ] Configure Gemini 2.0 Flash API (FREE - Latest Model)
   - [ ] Conversation flow logic
   - [ ] Task completion processing
   - [ ] Response validation
-- [ ] **Voice Services**
-  - [ ] Google Text-to-Speech integration
-  - [ ] Google Speech-to-Text setup
-  - [ ] Voice recording processing
-  - [ ] Audio file management
-- [ ] **Call Integration**
-  - [ ] Twilio/Exotel API setup
-  - [ ] Call scheduling system
-  - [ ] Call result processing
-  - [ ] Fallback logic implementation
+- [ ] **Free-First Voice System**
+  - [ ] Browser Web Speech API integration (FREE - default)
+  - [ ] Voice selection and management
+  - [ ] Cross-platform voice compatibility
+  - [ ] Voice quality optimization for browser TTS
+- [ ] **Optional Premium Voice Providers**
+  - [ ] ElevenLabs API integration (premium upgrade)
+  - [ ] OpenAI TTS integration (premium upgrade)
+  - [ ] Google TTS integration (premium upgrade)
+  - [ ] Voice provider switching system
+- [ ] **Voice Management APIs**
+  - [ ] `GET /voices` - List available voices with filters
+  - [ ] `GET /voices/{voiceId}/preview` - Generate voice sample
+  - [ ] `POST /voices/test` - Test voice with custom text
+  - [ ] `PUT /users/{userId}/default-voice` - Set user's default voice
+- [ ] **AI Voice Calling System** 🎯 **CORE FEATURE**
+  - [ ] Twilio API integration for phone calls
+  - [ ] AI conversation flow with Gemini
+  - [ ] Call scheduling and timing logic
+  - [ ] Voice recording and transcription
+  - [ ] Call result processing and task completion
+  - [ ] Fallback notification system
+- [ ] **Voice Enhancement Services**
+  - [ ] Voice personality matching algorithms
+  - [ ] Audio quality optimization
+  - [ ] Multi-language support preparation
 
 #### 6.4 Business Logic Implementation
 - [ ] **Task Execution Engine**
@@ -285,11 +317,55 @@
   - [ ] Call timing logic
   - [ ] Follow-up system
   - [ ] Notification triggers
+- [ ] **Enhanced Analytics Processing**
+  - [ ] Monthly analytics generation jobs
+  - [ ] Completion rate calculations
+  - [ ] Usage pattern analysis
+  - [ ] Performance trend tracking
 - [ ] **Privacy & Security**
   - [ ] Input filtering (inappropriate content)
   - [ ] Voice recording cleanup
   - [ ] Data privacy compliance
   - [ ] Rate limiting and security
+
+#### 6.5 Enhanced Sync & Offline Architecture
+- [ ] **Sync Infrastructure**
+  - [ ] Batch sync processing engine
+  - [ ] Conflict resolution algorithms
+  - [ ] Incremental sync optimization
+  - [ ] Sync status reporting and monitoring
+- [ ] **Offline-First Database Design**
+  - [ ] Local storage schema compatibility
+  - [ ] Data versioning and timestamps
+  - [ ] Sync queue metadata management
+  - [ ] Network status integration
+
+#### 6.6 Advanced Notification System 🆓 **FREE-FIRST APPROACH**
+- [ ] **Expo Push Notification Backend** (FREE - default)
+  - [ ] Expo SDK integration
+  - [ ] Cross-platform notification delivery
+  - [ ] Notification delivery tracking
+  - [ ] Smart notification timing optimization
+- [ ] **Optional Premium Alternatives**
+  - [ ] Firebase Admin SDK integration (premium upgrade)
+  - [ ] APNs certificate management (premium upgrade)
+- [ ] **Notification Coordination**
+  - [ ] Backend notification triggers
+  - [ ] Real-time streak updates
+  - [ ] Fallback notification logic coordination
+  - [ ] Batch notification scheduling
+
+#### 6.7 Advanced Voice Features
+- [ ] **Voice Selection Logic**
+  - [ ] Voice recommendation based on user preferences
+  - [ ] A/B testing for voice effectiveness
+  - [ ] Voice switching during calls based on context
+  - [ ] Dynamic voice selection based on task type
+- [ ] **Voice Quality & Performance**
+  - [ ] Voice caching and optimization
+  - [ ] Custom voice speed/pitch controls
+  - [ ] Voice preview generation
+  - [ ] Audio compression and streaming
 
 ---
 
@@ -312,10 +388,12 @@
   - [ ] Backend notification triggers
   - [ ] Push notification setup
   - [ ] Real-time streak updates
-- [ ] **Voice Call Integration**
-  - [ ] Call status tracking
-  - [ ] Real-time call updates
-  - [ ] Call history synchronization
+- [ ] **AI Voice Call Integration** 🎯 **CORE FEATURE**
+  - [ ] Real-time call status tracking
+  - [ ] Live call progress updates
+  - [ ] Call transcription and analysis
+  - [ ] Task completion confirmation
+  - [ ] Call history and analytics
 
 #### 7.3 Data Synchronization
 - [ ] **Offline-Online Sync**
@@ -344,7 +422,8 @@
 #### 8.2 End-to-End Testing
 - [ ] **Full Flow Testing**
   - [ ] Complete user journey testing
-  - [ ] Task creation to completion flow
+  - [ ] Task creation to AI call completion flow
+  - [ ] Voice call quality and transcription
   - [ ] Streak calculation accuracy
   - [ ] Notification delivery testing
 - [ ] **Device Testing**
@@ -413,12 +492,20 @@
 - **React Native Calendars**
 - **Expo Auth Session**
 
-### Backend Stack
+### Backend Stack 🆓 **FREE-FIRST**
 - **FastAPI** (Python)
-- **Supabase** (Database & Auth)
-- **Gemini 1.5 Pro** (AI)
-- **Google TTS/STT** (Voice)
-- **Twilio/Exotel** (Calls)
+- **Supabase** (Database & Auth - FREE 500MB)
+- **Gemini 2.0 Flash** (AI - FREE tier - Latest Model)
+- **Free User Experience:**
+  - **Browser Web Speech API** (FREE TTS for users)
+  - **Expo Push Notifications** (FREE for users)
+  - **Twilio Voice Calls** (FREE for users - backend cost only)
+  - **Local Redis** (FREE background processing)
+- **Optional Premium Upgrades:**
+  - **ElevenLabs** (Premium AI voices)
+  - **OpenAI TTS** (6 voice options)
+  - **Google Cloud TTS/STT** (Premium voices)
+  - **Firebase** (Advanced notifications)
 
 ### Development Tools
 - **VS Code** with React Native extensions
@@ -463,14 +550,27 @@
 
 ## 📈 Future Enhancements (Post-MVP)
 
+### Core Features
 - [ ] Social features (streak sharing)
 - [ ] Advanced analytics and insights
-- [ ] Custom AI personality training
 - [ ] Integration with external calendars
 - [ ] Wear OS/Apple Watch support
 - [ ] Team/family streak challenges
-- [ ] Premium voice options
 - [ ] Advanced recurring patterns
+
+### AI & Voice Enhancements
+- [ ] Custom AI personality training
+- [ ] Voice cloning (user's own voice)
+- [ ] Multi-language voice support
+- [ ] Voice emotional intelligence (detecting mood)
+- [ ] Custom voice speed/pitch per user
+- [ ] Voice-based task creation via speech
+
+### Premium Features
+- [ ] Ultra-premium voice options (celebrity voices)
+- [ ] Advanced conversation AI (GPT-4 integration)
+- [ ] Voice coaching and tips
+- [ ] Personalized motivation algorithms
 
 ---
 

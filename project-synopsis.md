@@ -120,7 +120,7 @@ To help users **stay accountable and build daily habits** using real-time, AI-po
 
 ### AI & Voice
 
-* **Gemini 1.5 Pro** – conversational AI for task check-ins
+* **Gemini 2.0 Flash** – Latest conversational AI for task check-ins
 * **Google STT** – voice response recognition
 * **Google TTS** – AI voice synthesis
 * **Twilio / Exotel** – voice call integration
