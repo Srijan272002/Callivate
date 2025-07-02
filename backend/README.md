@@ -118,35 +118,109 @@ backend/
 - **Indexed columns** for performance
 - **JSONB fields** for flexible data storage
 
-## 🔧 Configuration
+## �� Configuration
+
+### ⚠️ IMPORTANT: Backward Compatibility Notice
+
+**The configuration has been updated with full backward compatibility.** Both old and new environment variable names are supported:
+
+| Feature | Old Name (Legacy) | New Name (Preferred) | Status |
+|---------|-------------------|---------------------|---------|
+| Supabase Auth Key | `SUPABASE_KEY` | `SUPABASE_ANON_KEY` | ✅ Both supported |
+| JWT Secret | `SECRET_KEY` | `JWT_SECRET_KEY` | ✅ Both supported |
+| Twilio Phone | `TWILIO_PHONE_NUMBER` | `TWILIO_FROM_PHONE` | ✅ Both supported |
+| Server Host | `HOST` | `SERVER_HOST` | ✅ Both supported |
+| Server Port | `PORT` | `SERVER_PORT` | ✅ Both supported |
+| CORS Origins | `ALLOWED_HOSTS` | `ALLOWED_ORIGINS` | ✅ Both supported |
 
 ### Required Environment Variables (FREE SETUP)
 
+#### Core Configuration (REQUIRED)
 ```env
-# Database (FREE - Supabase)
-SUPABASE_URL=your-supabase-project-url
-SUPABASE_KEY=your-supabase-anon-key
-DATABASE_URL=postgresql://postgres:[password]@[host]:[port]/[db]
+# Database (FREE - Supabase) 
+SUPABASE_URL=https://your-project-id.supabase.co
 
-# AI Services (FREE - Google AI Studio)
-GEMINI_API_KEY=your-gemini-api-key
-GEMINI_MODEL="gemini-2.0-flash-exp"
+# Use EITHER new OR old names (both work):
+# NEW (preferred):
+SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# Voice & Notifications (FREE alternatives)
-USE_BROWSER_TTS=True
-USE_EXPO_NOTIFICATIONS=True
-EXPO_ACCESS_TOKEN=optional-expo-token
+# OLD (legacy, still supported):
+# SUPABASE_KEY=your-supabase-anon-key
 
-# Optional paid services (leave empty for free setup)
-GOOGLE_TTS_API_KEY=""
-ELEVENLABS_API_KEY=""
-OPENAI_API_KEY=""
-TWILIO_ACCOUNT_SID=""
+# Authentication - Use EITHER new OR old names:
+# NEW (preferred):
+JWT_SECRET_KEY=your-secret-key
+
+# OLD (legacy, still supported):  
+# SECRET_KEY=your-secret-key
 ```
 
-> 💡 **See [FREE_SETUP_GUIDE.md](FREE_SETUP_GUIDE.md) for complete free setup instructions**
+#### Optional Services
+```env
+# AI Services (FREE - Google AI Studio)
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.0-flash-exp
 
-See `.env.example` for complete configuration options.
+# Voice Calling (Optional - Twilio)
+TWILIO_ACCOUNT_SID=your-twilio-sid
+TWILIO_AUTH_TOKEN=your-twilio-token
+
+# Use EITHER new OR old names:
+# NEW (preferred):
+TWILIO_FROM_PHONE=+1234567890
+
+# OLD (legacy, still supported):
+# TWILIO_PHONE_NUMBER=+1234567890
+
+# Voice & Notifications (FREE alternatives)
+USE_BROWSER_TTS=true
+USE_EXPO_NOTIFICATIONS=true
+EXPO_ACCESS_TOKEN=optional-expo-token
+
+# Background Services (NEW)
+BACKGROUND_SERVICES_ENABLED=true
+REALTIME_ENABLED=true
+ANALYTICS_GENERATION_HOUR=2
+```
+
+### Quick Setup for Existing Users
+
+**If you have an existing `.env` file**, it will continue to work! The system automatically:
+
+1. ✅ **Recognizes old variable names** (`SUPABASE_KEY`, `SECRET_KEY`, `TWILIO_PHONE_NUMBER`)
+2. ✅ **Provides sensible defaults** for missing optional variables
+3. ✅ **Works in development mode** even with minimal configuration
+4. ✅ **Supports both naming conventions** simultaneously
+
+### Testing Your Configuration
+
+Run the configuration test to verify everything works:
+
+```bash
+python test_config.py
+```
+
+This will test both old and new environment variable names to ensure backward compatibility.
+
+### Migration Guide
+
+**No migration required!** Your existing configuration will work as-is. However, for new setups, we recommend using the new variable names:
+
+- `SUPABASE_KEY` → `SUPABASE_ANON_KEY`
+- `SECRET_KEY` → `JWT_SECRET_KEY` 
+- `TWILIO_PHONE_NUMBER` → `TWILIO_FROM_PHONE`
+
+> 💡 **See `.env.example` for complete configuration options with both old and new names**
+
+### Troubleshooting Configuration
+
+If you encounter configuration errors:
+
+1. **Check variable names**: Both old and new names are supported
+2. **Verify required fields**: Only `SUPABASE_URL`, `SUPABASE_ANON_KEY` (or `SUPABASE_KEY`), and `SUPABASE_SERVICE_ROLE_KEY` are required
+3. **Run in debug mode**: Set `DEBUG=true` for more permissive validation
+4. **Use the test script**: Run `python test_config.py` to validate your setup
 
 ## 🔗 API Endpoints
 

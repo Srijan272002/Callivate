@@ -1,6 +1,6 @@
-import { StorageService } from './storage';
-import { Task, User, Note } from '../types';
 import NetInfo from '@react-native-community/netinfo';
+import { Note, Task } from '../types';
+import { StorageService } from './storage';
 
 export interface OfflineTask extends Task {
   syncStatus: 'pending' | 'synced' | 'failed';
@@ -22,6 +22,18 @@ export interface SyncQueueItem {
   timestamp: string;
   retryCount: number;
   maxRetries: number;
+}
+
+// Extended sync item interface for advanced sync service compatibility
+export interface ExtendedSyncQueueItem {
+  id: string;
+  type: 'task' | 'note' | 'completion' | 'deletion' | 'user' | 'settings';
+  action: 'create' | 'update' | 'delete' | 'complete';
+  data: any;
+  timestamp: string;
+  retryCount: number;
+  maxRetries: number;
+  userId?: string;
 }
 
 export interface NetworkStatus {
@@ -312,10 +324,10 @@ export class OfflineService {
   /**
    * Add item to sync queue
    */
-  static async addToSyncQueue(item: SyncQueueItem): Promise<void> {
+  static async addToSyncQueue(item: SyncQueueItem | ExtendedSyncQueueItem): Promise<void> {
     try {
       const queue = await this.getSyncQueue();
-      queue.push(item);
+      queue.push(item as SyncQueueItem);
       await StorageService.setObject(this.STORAGE_KEYS.SYNC_QUEUE, queue);
       
       // Try to sync immediately if online
@@ -337,6 +349,61 @@ export class OfflineService {
     } catch (error) {
       console.error('❌ Failed to get sync queue:', error);
       return [];
+    }
+  }
+
+  /**
+   * Remove item from sync queue
+   */
+  static async removeSyncItem(itemId: string): Promise<void> {
+    try {
+      const queue = await this.getSyncQueue();
+      const updatedQueue = queue.filter(item => item.id !== itemId);
+      await StorageService.setObject(this.STORAGE_KEYS.SYNC_QUEUE, updatedQueue);
+      console.log(`🗑️ Removed sync item: ${itemId}`);
+    } catch (error) {
+      console.error('❌ Failed to remove sync item:', error);
+    }
+  }
+
+  /**
+   * Update item in sync queue
+   */
+  static async updateSyncItem(updatedItem: SyncQueueItem | ExtendedSyncQueueItem): Promise<void> {
+    try {
+      const queue = await this.getSyncQueue();
+      const itemIndex = queue.findIndex(item => item.id === updatedItem.id);
+      
+      if (itemIndex !== -1) {
+        queue[itemIndex] = updatedItem as SyncQueueItem;
+        await StorageService.setObject(this.STORAGE_KEYS.SYNC_QUEUE, queue);
+        console.log(`📝 Updated sync item: ${updatedItem.id}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to update sync item:', error);
+    }
+  }
+
+  /**
+   * Clear sync queue
+   */
+  static async clearSyncQueue(): Promise<void> {
+    try {
+      await StorageService.setObject(this.STORAGE_KEYS.SYNC_QUEUE, []);
+      console.log('🗑️ Cleared sync queue');
+    } catch (error) {
+      console.error('❌ Failed to clear sync queue:', error);
+    }
+  }
+
+  /**
+   * Set last sync time
+   */
+  static async setLastSyncTime(timestamp: string): Promise<void> {
+    try {
+      await StorageService.setItem(this.STORAGE_KEYS.LAST_SYNC, timestamp);
+    } catch (error) {
+      console.error('❌ Failed to set last sync time:', error);
     }
   }
 
@@ -397,7 +464,7 @@ export class OfflineService {
       await StorageService.setObject(this.STORAGE_KEYS.SYNC_QUEUE, failedItems);
       
       // Update last sync timestamp
-      await StorageService.setItem(this.STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
+      await this.setLastSyncTime(new Date().toISOString());
 
       console.log(`✅ Sync completed: ${successfulItems.length} successful, ${failedItems.length} failed`);
       

@@ -33,4 +33,7 @@ export const isEmail = (email: string): boolean => {
 export const isValidTime = (timeString: string): boolean => {
   const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
   return timeRegex.test(timeString);
-}; 
+};
+
+// Export all utility functions here for easy importing
+export * from './connectionTest';

@@ -1,9 +1,12 @@
 // API Services
-export * from './storage';
-export * from './supabase';
+export * from './api';
 export * from './auth';
 export * from './notifications';
 export * from './offlineService';
+export * from './realtimeService';
+export * from './storage';
+export * from './supabase';
+export * from './syncService';
 export * from './taskService';
 
 // Services are now available:

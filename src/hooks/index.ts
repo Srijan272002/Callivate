@@ -11,6 +11,7 @@
 // Authentication hooks
 export * from './useAuth';
 export * from './useNotifications';
+export * from './useRealtime';
 export * from './useTheme';
 
 // Placeholder for future hooks:
@@ -19,4 +20,4 @@ export * from './useTheme';
 // - useNotifications (notification handling)
 // - useTheme (theme switching)
 
-export {}; 
+export { };

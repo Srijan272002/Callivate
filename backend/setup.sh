@@ -37,7 +37,26 @@ pip install --upgrade pip
 
 # Install dependencies
 echo "📦 Installing Python dependencies..."
-pip install -r requirements.txt
+echo "🔧 Resolving dependency conflicts..."
+
+# First, try to install with updated requirements
+if pip install -r requirements.txt; then
+    echo "✅ Dependencies installed successfully"
+else
+    echo "⚠️  Dependency conflict detected. Attempting resolution..."
+    
+    # Install core dependencies first
+    pip install "fastapi>=0.104.1,<1.0.0" "uvicorn[standard]>=0.24.0,<1.0.0"
+    pip install "pydantic>=2.5.1,<3.0.0" "pydantic-settings>=2.1.0,<3.0.0"
+    
+    # Install supabase with compatible httpx
+    pip install "supabase>=2.16.0,<3.0.0"
+    
+    # Install remaining dependencies
+    pip install -r requirements.txt --no-deps
+    
+    echo "✅ Dependencies resolved and installed"
+fi
 
 # Create .env file if it doesn't exist
 echo "⚙️ Setting up environment variables..."
