@@ -36,7 +36,16 @@
     "scheme": "callivate",
     "plugins": [
       "expo-secure-store",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#0ea5e9",
+          "sounds": ["./assets/notification.wav"],
+          "mode": "production"
+        }
+      ]
     ],
     "extra": {
       "eas": {

@@ -2,16 +2,16 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { NotificationData, Task } from '../types';
 import { StorageService } from './storage';
-import { supabaseClient } from './supabase';
+import { supabase } from './supabase';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
     shouldShowBanner: true,
     shouldShowList: true,
+    priority: Notifications.AndroidNotificationPriority.HIGH,
   }),
 });
 
@@ -141,27 +141,36 @@ export class AdvancedNotificationService {
   static async registerForPushNotifications(): Promise<string | null> {
     try {
       if (!this.deviceToken) {
-        const tokenData = await Notifications.getExpoPushTokenAsync();
+        const tokenData = await Notifications.getExpoPushTokenAsync({
+          projectId: process.env.EXPO_PROJECT_ID // This should be set in your environment
+        }).catch(async (error) => {
+          // Fallback to local notifications if push registration fails
+          console.warn('⚠️ Push notification registration failed, falling back to local notifications:', error);
+          return { data: 'local-only' };
+        });
+        
         this.deviceToken = tokenData.data;
         await StorageService.setItem(this.STORAGE_KEYS.DEVICE_TOKEN, this.deviceToken);
       }
 
-      // Register with backend
-      const userId = await StorageService.getItem(this.STORAGE_KEYS.USER_ID);
-      if (userId && this.deviceToken) {
-        const response = await supabaseClient.functions.invoke('register-device-token', {
-          body: {
-            user_id: userId,
-            device_token: this.deviceToken,
-            device_type: Platform.OS as 'ios' | 'android',
-            device_name: `${Platform.OS} Device`,
-          },
-        });
+      // Only proceed with backend registration if we have a valid push token
+      if (this.deviceToken && this.deviceToken !== 'local-only') {
+        const userId = await StorageService.getItem(this.STORAGE_KEYS.USER_ID);
+        if (userId) {
+          const response = await supabase.functions.invoke('register-device-token', {
+            body: {
+              user_id: userId,
+              device_token: this.deviceToken,
+              device_type: Platform.OS as 'ios' | 'android',
+              device_name: `${Platform.OS} Device`,
+            },
+          });
 
-        if (response.error) {
-          console.error('Failed to register device token:', response.error);
-        } else {
-          console.log('✅ Device token registered with backend');
+          if (response.error) {
+            console.error('Failed to register device token:', response.error);
+          } else {
+            console.log('✅ Device token registered with backend');
+          }
         }
       }
 
@@ -210,7 +219,7 @@ export class AdvancedNotificationService {
       if (!userId) return null;
 
       // Send to backend for smart timing processing
-      const response = await supabaseClient.functions.invoke('send-notification', {
+      const response = await supabase.functions.invoke('send-notification', {
         body: {
           user_id: userId,
           task_execution_id: task.id,
@@ -247,7 +256,7 @@ export class AdvancedNotificationService {
       if (!userId) return;
 
       // Send via backend for real-time Supabase integration
-      const response = await supabaseClient.functions.invoke('send-streak-notification', {
+      const response = await supabase.functions.invoke('send-streak-notification', {
         body: {
           user_id: userId,
           streak_count: streakCount,
@@ -274,7 +283,7 @@ export class AdvancedNotificationService {
       const userId = await StorageService.getItem(this.STORAGE_KEYS.USER_ID);
       if (!userId) return null;
 
-      const response = await supabaseClient.functions.invoke('get-notification-analytics', {
+      const response = await supabase.functions.invoke('get-notification-analytics', {
         body: { user_id: userId, days },
       });
 
@@ -298,7 +307,7 @@ export class AdvancedNotificationService {
       const userId = await StorageService.getItem(this.STORAGE_KEYS.USER_ID);
       if (!userId) return null;
 
-      const response = await supabaseClient.functions.invoke('get-notification-settings', {
+      const response = await supabase.functions.invoke('get-notification-settings', {
         body: { user_id: userId },
       });
 
@@ -322,7 +331,7 @@ export class AdvancedNotificationService {
       const userId = await StorageService.getItem(this.STORAGE_KEYS.USER_ID);
       if (!userId) return false;
 
-      const response = await supabaseClient.functions.invoke('update-notification-settings', {
+      const response = await supabase.functions.invoke('update-notification-settings', {
         body: { user_id: userId, settings },
       });
 
@@ -347,7 +356,7 @@ export class AdvancedNotificationService {
       const userId = await StorageService.getItem(this.STORAGE_KEYS.USER_ID);
       if (!userId) return [];
 
-      const response = await supabaseClient.functions.invoke('get-scheduled-notifications', {
+      const response = await supabase.functions.invoke('get-scheduled-notifications', {
         body: { user_id: userId },
       });
 
@@ -368,7 +377,7 @@ export class AdvancedNotificationService {
    */
   static async cancelScheduledNotification(notificationId: string): Promise<boolean> {
     try {
-      const response = await supabaseClient.functions.invoke('cancel-scheduled-notification', {
+      const response = await supabase.functions.invoke('cancel-scheduled-notification', {
         body: { notification_id: notificationId },
       });
 
@@ -396,7 +405,7 @@ export class AdvancedNotificationService {
       // Get user's timezone
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      const response = await supabaseClient.functions.invoke('schedule-daily-motivation', {
+      const response = await supabase.functions.invoke('schedule-daily-motivation', {
         body: {
           timezone_data: {
             [timezone]: [userId],
@@ -485,7 +494,7 @@ export class AdvancedNotificationService {
       if (!userId) return;
 
       // Track interaction with backend for analytics
-      await supabaseClient.from('notification_logs').update({
+      await supabase.from('notification_logs').update({
         delivered_at: new Date().toISOString(),
         delivery_status: type === 'clicked' ? 'delivered' : 'sent',
       }).eq('user_id', userId)
@@ -551,7 +560,70 @@ export class AdvancedNotificationService {
     await StorageService.removeItem(this.STORAGE_KEYS.DEVICE_TOKEN);
     this.deviceToken = null;
   }
+
+  /**
+   * Send offline fallback notification using local notifications
+   */
+  static async sendOfflineFallbackNotification(task: Task): Promise<void> {
+    try {
+      const notificationContent = {
+        title: '📱 Offline Reminder',
+        body: `Time for: ${task.title}`,
+        data: {
+          action: 'open_task',
+          type: 'offline_reminder',
+          userId: 'current_user',
+          taskId: task.id
+        },
+        sound: 'default',
+        autoDismiss: true
+      };
+
+      await Notifications.scheduleNotificationAsync({
+        content: notificationContent,
+        trigger: null // Send immediately
+      });
+
+      console.log('📱 Offline notification sent immediately for:', task.title);
+    } catch (error) {
+      console.error('❌ Failed to send offline notification:', error);
+    }
+  }
+
+  /**
+   * Cancel task notifications (both local and remote)
+   */
+  static async cancelTaskNotifications(taskId: string): Promise<void> {
+    try {
+      // Cancel local notifications
+      const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+      const taskNotifications = scheduledNotifications.filter(
+        notification => notification.content.data?.taskId === taskId
+      );
+
+      for (const notification of taskNotifications) {
+        await Notifications.cancelScheduledNotificationAsync(notification.identifier);
+      }
+
+      // Cancel remote notifications (if online)
+      const userId = await StorageService.getItem(this.STORAGE_KEYS.USER_ID);
+      if (userId) {
+        try {
+          await supabase.functions.invoke('cancel-task-notifications', {
+            body: { user_id: userId, task_id: taskId },
+          });
+        } catch (error) {
+          // Silently fail if offline or server unavailable
+          console.warn('Could not cancel remote notifications:', error);
+        }
+      }
+
+      console.log(`🗑️ Cancelled notifications for task: ${taskId}`);
+    } catch (error) {
+      console.error('❌ Failed to cancel task notifications:', error);
+    }
+  }
 }
 
 // For backward compatibility
-export const NotificationService = AdvancedNotificationService; 
+export const NotificationService = AdvancedNotificationService;

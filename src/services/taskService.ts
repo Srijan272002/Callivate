@@ -1,7 +1,9 @@
-import { Task, CreateTaskForm } from '../types';
+import { CreateTaskForm, Task } from '../types';
+import { CallingService } from './callingService';
 import { NotificationService } from './notifications';
 import { OfflineService } from './offlineService';
 import { StorageService } from './storage';
+import { TaskExecutionService } from './taskExecutionService';
 
 export class TaskService {
   private static readonly STORAGE_KEYS = {
@@ -10,7 +12,7 @@ export class TaskService {
   };
 
   /**
-   * Create a new task with notification scheduling
+   * Create a new task with enhanced calling and notification scheduling
    */
   static async createTask(taskForm: CreateTaskForm): Promise<Task> {
     try {
@@ -33,10 +35,8 @@ export class TaskService {
         // Save to server (would be API call)
         console.log('📡 Saving task to server:', task.title);
         
-        // Schedule notification
-        if (!task.isSilentMode) {
-          await NotificationService.scheduleTaskReminder(task);
-        }
+        // Enhanced task execution scheduling
+        await this.scheduleTaskExecution(task);
         
         // Save locally as backup
         await this.saveTaskLocally(task);
@@ -45,7 +45,7 @@ export class TaskService {
         console.log('📱 Device offline, saving task offline:', task.title);
         await OfflineService.saveTaskOffline(task);
         
-        // Schedule local notification
+        // Schedule local notification fallback
         if (!task.isSilentMode) {
           await NotificationService.sendOfflineFallbackNotification(task);
         }
@@ -55,6 +55,114 @@ export class TaskService {
       return task;
     } catch (error) {
       console.error('❌ Failed to create task:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Enhanced task execution scheduling with calling integration
+   */
+  private static async scheduleTaskExecution(task: Task): Promise<void> {
+    try {
+      // Get user profile to check for phone number and calling preferences
+      const userProfile = await TaskExecutionService.getUserProfile();
+      
+      if (!task.isSilentMode) {
+        if (userProfile.phoneNumber && userProfile.callingEnabled) {
+          console.log('📞 Task will use AI calling system');
+          
+          // Check calling system status
+          const systemStatus = await CallingService.getSystemStatus();
+          if (systemStatus.available) {
+            console.log('✅ Calling system available - task will trigger calls');
+          } else {
+            console.log('⚠️ Calling system unavailable - will fallback to notifications');
+          }
+        } else {
+          console.log('🔔 Task will use notification system');
+        }
+
+        // Schedule with task execution service (handles calling + notification fallback)
+        await this.scheduleTaskWithExecutionService(task);
+      } else {
+        console.log('🔇 Task scheduled in silent mode');
+      }
+
+    } catch (error) {
+      console.error('Error scheduling task execution:', error);
+      // Fallback to basic notification
+      await NotificationService.scheduleTaskReminder(task);
+    }
+  }
+
+  /**
+   * Schedule task with enhanced execution service
+   */
+  private static async scheduleTaskWithExecutionService(task: Task): Promise<void> {
+    try {
+      // This would typically integrate with a background scheduler
+      // For now, we'll simulate by scheduling a notification that triggers execution
+      
+      const scheduledTime = new Date(task.scheduledTime);
+      const now = new Date();
+      
+      if (scheduledTime > now) {
+        // Calculate delay
+        const delay = scheduledTime.getTime() - now.getTime();
+        
+        // Schedule execution (in real app, this would use background tasks)
+        setTimeout(async () => {
+          await TaskExecutionService.executeScheduledTask(task);
+        }, Math.min(delay, 2147483647)); // Max setTimeout value
+        
+        console.log(`⏰ Task execution scheduled for ${scheduledTime.toLocaleString()}`);
+      } else {
+        // Immediate execution
+        await TaskExecutionService.executeScheduledTask(task);
+      }
+
+    } catch (error) {
+      console.error('Error scheduling with execution service:', error);
+      // Fallback to notification
+      await NotificationService.scheduleTaskReminder(task);
+    }
+  }
+
+  /**
+   * Create task with calling integration (enhanced method)
+   */
+  static async createTaskWithCalling(
+    taskForm: CreateTaskForm, 
+    userPhone?: string
+  ): Promise<Task> {
+    try {
+      // Create the task first
+      const task = await this.createTask(taskForm);
+      
+      // If phone number provided and not silent mode, attempt to set up calling
+      if (userPhone && !task.isSilentMode) {
+        try {
+          // Save user phone if not already saved
+          const existingPhone = await CallingService.getUserPhone();
+          if (!existingPhone || existingPhone !== userPhone) {
+            await CallingService.saveUserPhone(userPhone);
+            
+            // Update user profile with phone number
+            await TaskExecutionService.updateUserProfile({ phoneNumber: userPhone });
+          }
+          
+          console.log('📞 Task created with calling capability');
+          
+        } catch (phoneError) {
+          console.error('Error setting up calling for task:', phoneError);
+          // Task still created successfully, just without calling
+        }
+      }
+      
+      return task;
+      
+    } catch (error) {
+      console.error('Error creating task with calling:', error);
       throw error;
     }
   }

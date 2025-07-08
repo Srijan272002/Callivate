@@ -304,6 +304,21 @@ async def create_tables():
         );
         """,
         
+        # Voice usage logs for analytics and billing
+        """
+        CREATE TABLE IF NOT EXISTS public.voice_usage_logs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+            voice_id TEXT NOT NULL,
+            text_length INTEGER NOT NULL DEFAULT 0,
+            synthesis_type TEXT DEFAULT 'unknown' CHECK (synthesis_type IN ('browser', 'elevenlabs', 'openai', 'google', 'unknown')),
+            cost DECIMAL(10, 6) DEFAULT 0.0,
+            session_id TEXT,
+            context_type TEXT DEFAULT 'preview' CHECK (context_type IN ('preview', 'call', 'notification', 'test')),
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+        """,
+        
         # Enhanced user settings for smart timing
         """
         CREATE TABLE IF NOT EXISTS public.user_notification_settings (

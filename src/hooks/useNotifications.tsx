@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { NotificationService, OfflineService, TaskService } from '../services';
 import { Task } from '../types';
 
@@ -163,7 +163,7 @@ export const useNotifications = () => {
   // Send streak break notification
   const sendStreakBreakNotification = useCallback(async (streakCount: number) => {
     try {
-      await NotificationService.sendStreakBreakNotification(streakCount);
+      await NotificationService.sendStreakNotification(streakCount, 'break');
     } catch (error) {
       console.error('Failed to send streak break notification:', error);
     }

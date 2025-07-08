@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  Platform,
-  TextInput,
-  Animated,
-  Dimensions,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { fontSize, spacing, borderRadius } from '../styles/theme';
-import { useTheme } from '../hooks/useTheme';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  Animated,
+  Dimensions,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Button, Card, Toast } from '../components/ui';
+import { useTheme } from '../hooks/useTheme';
+import { CallingService, TaskService, VoiceService } from '../services';
+import { borderRadius, fontSize, spacing } from '../styles/theme';
 import { CreateTaskForm, Voice } from '../types';
-import { TaskService } from '../services';
 
 const { width } = Dimensions.get('window');
 
@@ -29,7 +29,7 @@ interface CreateTaskScreenProps {
 // Enhanced voices with personality
 const mockVoices: (Voice & { personality: string; avatar: string })[] = [
   { 
-    id: '1', 
+    id: 'browser-female-1', 
     name: 'Sarah', 
     isDefault: true, 
     isCustom: false,
@@ -37,7 +37,7 @@ const mockVoices: (Voice & { personality: string; avatar: string })[] = [
     avatar: '👩',
   },
   { 
-    id: '2', 
+    id: 'browser-male-1', 
     name: 'Marcus', 
     isDefault: false, 
     isCustom: false,
@@ -45,7 +45,7 @@ const mockVoices: (Voice & { personality: string; avatar: string })[] = [
     avatar: '👨',
   },
   { 
-    id: '3', 
+    id: 'browser-female-2', 
     name: 'Luna', 
     isDefault: false, 
     isCustom: false,
@@ -53,7 +53,7 @@ const mockVoices: (Voice & { personality: string; avatar: string })[] = [
     avatar: '🌙',
   },
   { 
-    id: '4', 
+    id: 'browser-male-2', 
     name: 'Alex', 
     isDefault: false, 
     isCustom: false,
@@ -80,6 +80,11 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
   const [titleFocused, setTitleFocused] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   
+  // Voice preview states
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  const [previewTimer, setPreviewTimer] = useState<number>(0);
+  const [previewInterval, setPreviewInterval] = useState<NodeJS.Timeout | null>(null);
+  
   // Animation values
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(50))[0];
@@ -103,6 +108,85 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
     ]).start();
   }, []);
 
+  // Cleanup preview timer on unmount
+  useEffect(() => {
+    return () => {
+      if (previewInterval) {
+        clearInterval(previewInterval);
+      }
+    };
+  }, [previewInterval]);
+
+  const handleVoicePreview = async (voiceId: string) => {
+    try {
+      // Stop any current preview
+      if (playingVoiceId) {
+        await VoiceService.stopCurrentAudio();
+        if (previewInterval) {
+          clearInterval(previewInterval);
+        }
+        setPlayingVoiceId(null);
+        setPreviewTimer(0);
+        
+        // If clicking the same voice, just stop
+        if (playingVoiceId === voiceId) {
+          return;
+        }
+      }
+
+      // Start new preview
+      setPlayingVoiceId(voiceId);
+      setPreviewTimer(5);
+
+      // Start countdown timer
+      const interval = setInterval(() => {
+        setPreviewTimer((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setPlayingVoiceId(null);
+            setPreviewTimer(0);
+            VoiceService.stopCurrentAudio();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      setPreviewInterval(interval);
+
+      // Play voice preview
+      const voice = mockVoices.find(v => v.id === voiceId);
+      const sampleText = form.title.trim() 
+        ? `Hi! This is ${voice?.name}. I'll remind you to: ${form.title}`
+        : `Hi! This is your AI assistant ${voice?.name} from Callivate. I'll help you stay on track with your tasks.`;
+
+      await VoiceService.previewVoice(voiceId, sampleText);
+
+    } catch (error) {
+      console.error('Failed to preview voice:', error);
+      // Stop timer on error
+      if (previewInterval) {
+        clearInterval(previewInterval);
+      }
+      setPlayingVoiceId(null);
+      setPreviewTimer(0);
+      
+      // Provide more helpful error messages
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      if (errorMessage.includes('not available on this device')) {
+        // Voice preview not available but voice will work in actual use
+        console.log(`Voice ${voiceId} selected - preview not available but will work during calls`);
+      } else {
+        Alert.alert(
+          'Voice Preview', 
+          'Preview temporarily unavailable, but your selected voice will work perfectly during AI calls.',
+          [{ text: 'OK', style: 'default' }]
+        );
+      }
+    }
+  };
+
   const validateForm = (): boolean => {
     if (!form.title.trim()) {
       Alert.alert('Hold up! 🤔', 'What would you like to be reminded about?');
@@ -120,22 +204,68 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
   const handleSave = async () => {
     if (!validateForm()) return;
 
-    setSaving(true);
     try {
-      // Create the task using TaskService
-      const task = await TaskService.createTask(form);
+      setSaving(true);
       
-      // Show success toast
-      setShowSuccessToast(true);
+      // Get user's phone number for calling integration
+      const userPhone = await CallingService.getUserPhone();
       
-      // Wait for toast to show, then navigate to notification permission
-      setTimeout(() => {
-        navigation?.navigate('NotificationPermission');
-      }, 1500);
-      
+      if (userPhone && !form.isSilentMode) {
+        // Create task with calling integration
+        const task = await TaskService.createTaskWithCalling(form, userPhone);
+        
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+        
+        // Show calling confirmation
+        Alert.alert(
+          '📞 Task Created with AI Calling!',
+          `Your task "${task.title}" has been created. You'll receive an AI phone call at the scheduled time for better accountability!`,
+          [
+            { 
+              text: 'Perfect!', 
+              style: 'default',
+              onPress: () => navigation?.goBack?.()
+            }
+          ]
+        );
+      } else {
+        // Create task with notifications only
+        const task = await TaskService.createTask(form);
+        
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+        
+        if (!userPhone && !form.isSilentMode) {
+          // Suggest adding phone number for better experience
+          Alert.alert(
+            '✅ Task Created!',
+            'Your task has been created with notification reminders. Want even better accountability? Add your phone number in Settings to enable AI voice calls!',
+            [
+              { text: 'Maybe Later', style: 'cancel', onPress: () => navigation?.goBack?.() },
+              { 
+                text: 'Add Phone Number', 
+                style: 'default',
+                onPress: () => {
+                  navigation?.goBack?.();
+                  navigation?.navigate?.('Settings');
+                }
+              }
+            ]
+          );
+        } else {
+          setTimeout(() => {
+            navigation?.goBack?.();
+          }, 1500);
+        }
+      }
     } catch (error) {
-      console.error('Failed to create task:', error);
-      Alert.alert('Oops! 😅', 'Something went wrong. Please try again.');
+      console.error('❌ Failed to create task:', error);
+      Alert.alert(
+        'Oops! 😅',
+        'Something went wrong creating your task. Please try again.',
+        [{ text: 'OK', style: 'default' }]
+      );
     } finally {
       setSaving(false);
     }
@@ -259,20 +389,42 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
               <TouchableOpacity
                 key={voice.id}
                 style={styles.voiceSliderItem}
-                onPress={() => setForm(prev => ({ ...prev, voiceId: voice.id, isSilentMode: false }))}
+                onPress={() => {
+                  setForm(prev => ({ ...prev, voiceId: voice.id, isSilentMode: false }));
+                  handleVoicePreview(voice.id);
+                }}
               >
                 <View style={[
                   styles.voiceSliderAvatar,
                   form.voiceId === voice.id && styles.voiceSliderAvatarSelected,
+                  playingVoiceId === voice.id && styles.voiceSliderAvatarPlaying,
                   { backgroundColor: getVoiceColor(index) + '20' }
                 ]}>
-                  <Text style={styles.voiceSliderAvatarText}>{voice.avatar}</Text>
+                  {playingVoiceId === voice.id ? (
+                    <View style={styles.playingIndicator}>
+                      <Text style={styles.timerText}>{previewTimer}</Text>
+                      <Ionicons name="volume-high" size={16} color={theme.colors.primary} />
+                    </View>
+                  ) : (
+                    <>
+                      <Text style={styles.voiceSliderAvatarText}>{voice.avatar}</Text>
+                      <Ionicons 
+                        name="play-circle-outline" 
+                        size={16} 
+                        color={theme.colors.primary} 
+                        style={styles.playIcon}
+                      />
+                    </>
+                  )}
                 </View>
                 <Text style={[
                   styles.voiceSliderName,
                   form.voiceId === voice.id && styles.voiceSliderNameSelected
                 ]}>
                   {voice.name}
+                </Text>
+                <Text style={styles.voiceSliderPersonality}>
+                  {voice.personality}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -298,6 +450,14 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ navigation }
             </TouchableOpacity>
           </ScrollView>
         </Card>
+
+        {/* Voice Preview Instructions */}
+        <View style={styles.previewInfo}>
+          <Ionicons name="information-circle-outline" size={16} color={theme.colors.textSecondary} />
+          <Text style={styles.previewInfoText}>
+            Tap any voice to hear a 5-second preview
+          </Text>
+        </View>
 
         {/* Date & Time Selection */}
         <Card style={styles.whenCard} shadow="md">
@@ -527,6 +687,10 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     borderColor: theme.colors.primary,
     transform: [{ scale: 1.05 }],
   },
+  voiceSliderAvatarPlaying: {
+    borderColor: theme.colors.primary,
+    transform: [{ scale: 1.05 }],
+  },
   voiceSliderAvatarText: {
     fontSize: fontSize.xl,
   },
@@ -539,6 +703,12 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
   voiceSliderNameSelected: {
     color: theme.colors.primary,
     fontWeight: '600',
+  },
+  voiceSliderPersonality: {
+    fontSize: fontSize.xs,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.xs / 2,
   },
   whenCard: {
     marginBottom: spacing.lg,
@@ -660,5 +830,38 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: 'center',
     marginTop: spacing.md,
+  },
+  previewInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: theme.colors.primary + '10',
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.lg,
+  },
+  previewInfoText: {
+    fontSize: fontSize.sm,
+    color: theme.colors.primary,
+    marginLeft: spacing.sm,
+    fontWeight: '500',
+  },
+  playingIndicator: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary + '20',
+    borderRadius: borderRadius.xl,
+  },
+  timerText: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    color: theme.colors.primary,
+    marginBottom: spacing.xs / 2,
+  },
+  playIcon: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    opacity: 0.8,
   },
 }); 

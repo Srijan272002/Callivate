@@ -1,80 +1,66 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { fontSize, spacing, borderRadius } from '../styles/theme';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import {
+    Dimensions,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { Badge, Card } from '../components/ui';
 import { useTheme } from '../hooks/useTheme';
-import { Card, Badge } from '../components/ui';
+import { TaskService } from '../services/taskService';
+import { borderRadius, fontSize, spacing } from '../styles/theme';
 import { CalendarDay, Task } from '../types';
 
 const { width } = Dimensions.get('window');
 const CELL_SIZE = (width - spacing.lg * 2) / 7;
-
-// Mock data
-const mockTasks: Task[] = [
-  {
-    id: '1',
-    userId: 'user1',
-    title: 'Morning workout',
-    scheduledTime: '2024-01-15T07:00:00Z',
-    isCompleted: true,
-    isRecurring: true,
-    recurrenceType: 'daily',
-    isSilentMode: false,
-    createdAt: '2024-01-10T00:00:00Z',
-    updatedAt: '2024-01-15T07:30:00Z',
-    completedAt: '2024-01-15T07:25:00Z',
-  },
-  {
-    id: '2',
-    userId: 'user1',
-    title: 'Read for 30 minutes',
-    scheduledTime: '2024-01-16T20:00:00Z',
-    isCompleted: false,
-    isRecurring: true,
-    recurrenceType: 'daily',
-    isSilentMode: false,
-    createdAt: '2024-01-10T00:00:00Z',
-    updatedAt: '2024-01-10T00:00:00Z',
-  },
-  {
-    id: '3',
-    userId: 'user1',
-    title: 'Call mom',
-    scheduledTime: '2024-01-17T18:00:00Z',
-    isCompleted: false,
-    isRecurring: false,
-    isSilentMode: true,
-    createdAt: '2024-01-15T00:00:00Z',
-    updatedAt: '2024-01-15T00:00:00Z',
-  },
-];
-
-const mockStreakData = {
-  currentStreak: 7,
-  longestStreak: 15,
-  streakStartDate: '2024-01-09',
-};
 
 export const CalendarScreen: React.FC = () => {
   const { theme, isDark } = useTheme();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [streakData, setStreakData] = useState({
+    currentStreak: 0,
+    longestStreak: 0,
+    streakStartDate: '',
+  });
 
   // Create dynamic styles based on current theme
   const styles = React.useMemo(() => createStyles(theme, isDark), [theme, isDark]);
 
+  // Refresh tasks when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadTasks();
+    }, [])
+  );
+
+  // Refresh calendar when tasks or current date changes
   useEffect(() => {
     generateCalendarDays();
-  }, [currentDate]);
+  }, [currentDate, tasks]);
+
+  const loadTasks = async () => {
+    try {
+      const allTasks = await TaskService.getAllTasks();
+      setTasks(allTasks);
+      
+      // TODO: Replace with actual streak data from backend
+      setStreakData({
+        currentStreak: 7,
+        longestStreak: 15,
+        streakStartDate: '2024-01-09',
+      });
+    } catch (error) {
+      console.error('Failed to load tasks:', error);
+    }
+  };
 
   const generateCalendarDays = () => {
     const year = currentDate.getFullYear();
@@ -92,9 +78,9 @@ export const CalendarScreen: React.FC = () => {
       date.setDate(startDate.getDate() + i);
       const dateString = date.toISOString().split('T')[0];
       
-      const dayTasks = mockTasks.filter(task => {
-        const taskDate = new Date(task.scheduledTime).toDateString();
-        return taskDate === date.toDateString();
+      const dayTasks = tasks.filter(task => {
+        const taskDate = new Date(task.scheduledTime).toISOString().split('T')[0];
+        return taskDate === dateString;
       });
 
       let status: CalendarDay['status'] = 'no-task';
@@ -168,7 +154,7 @@ export const CalendarScreen: React.FC = () => {
             <View style={styles.statContent}>
               <Ionicons name="flame" size={24} color={theme.colors.warning} />
               <View style={styles.statInfo}>
-                <Text style={styles.streakStatNumber}>{mockStreakData.currentStreak}</Text>
+                <Text style={styles.streakStatNumber}>{streakData.currentStreak}</Text>
                 <Text style={styles.streakStatLabel}>Day Streak</Text>
               </View>
             </View>
@@ -178,7 +164,7 @@ export const CalendarScreen: React.FC = () => {
             <View style={styles.statContent}>
               <Ionicons name="trophy" size={24} color={theme.colors.success} />
               <View style={styles.statInfo}>
-                <Text style={styles.streakStatNumber}>{mockStreakData.longestStreak}</Text>
+                <Text style={styles.streakStatNumber}>{streakData.longestStreak}</Text>
                 <Text style={styles.streakStatLabel}>Best Streak</Text>
               </View>
             </View>

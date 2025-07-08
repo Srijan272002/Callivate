@@ -11,6 +11,8 @@ import logging
 import json
 import re
 from datetime import datetime, timedelta
+import requests
+import base64
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +184,21 @@ class VoiceService:
     def __init__(self):
         self.use_browser_tts = settings.USE_BROWSER_TTS
         self.ai_service = AIService()
+        self.elevenlabs_client = None
+        if settings.ELEVENLABS_API_KEY:
+            self.elevenlabs_client = self._init_elevenlabs()
         
+    def _init_elevenlabs(self):
+        """Initialize ElevenLabs client"""
+        return {
+            "api_key": settings.ELEVENLABS_API_KEY,
+            "base_url": "https://api.elevenlabs.io/v1",
+            "headers": {
+                "Accept": "application/json",
+                "xi-api-key": settings.ELEVENLABS_API_KEY
+            }
+        }
+    
     async def get_available_voices(self, include_premium: bool = False, user_id: str = None) -> List[Dict[str, Any]]:
         """
         Get list of available voices with personalized recommendations
@@ -275,8 +291,10 @@ class VoiceService:
                     "volume": 1.0
                 }
             }
+        elif voice_id.startswith("elevenlabs-"):
+            return await self._generate_elevenlabs_preview(voice_id, text)
         
-        # For premium voices, return configuration for API calls
+        # For other premium voices, return configuration for API calls
         return await self._generate_premium_preview(voice_id, text)
     
     async def get_voice_recommendations(self, user_id: str, task_context: Dict[str, Any] = None) -> List[Dict[str, Any]]:
@@ -365,10 +383,51 @@ class VoiceService:
             ]
     
     async def _get_elevenlabs_voices(self) -> List[Dict[str, Any]]:
-        """Get ElevenLabs voices (premium)"""
-        if not settings.ELEVENLABS_API_KEY:
+        """Get ElevenLabs voices from their API"""
+        if not self.elevenlabs_client:
             return []
         
+        try:
+            # Fetch voices from ElevenLabs API
+            response = requests.get(
+                f"{self.elevenlabs_client['base_url']}/voices",
+                headers=self.elevenlabs_client["headers"]
+            )
+            
+            if response.status_code == 200:
+                api_voices = response.json().get("voices", [])
+                voices = []
+                
+                for voice in api_voices:
+                    voices.append({
+                        "id": f"elevenlabs-{voice['voice_id']}",
+                        "name": f"{voice['name']} (ElevenLabs)",
+                        "provider": "elevenlabs",
+                        "category": "premium",
+                        "language_code": "en-US",
+                        "gender": self._determine_gender(voice['name']),
+                        "personality": voice.get('labels', {}).get('descriptive', []),
+                        "is_premium": True,
+                        "is_free": False,
+                        "description": f"ElevenLabs AI voice: {voice['name']}",
+                        "features": ["Natural speech", "Emotion control", "Custom training"],
+                        "quality_score": 9.2,
+                        "cost_per_character": 0.0001,
+                        "elevenlabs_voice_id": voice['voice_id'],
+                        "preview_url": voice.get('preview_url')
+                    })
+                
+                return voices
+            else:
+                logger.warning(f"ElevenLabs API error: {response.status_code}")
+                return self._get_fallback_elevenlabs_voices()
+                
+        except Exception as e:
+            logger.error(f"Error fetching ElevenLabs voices: {e}")
+            return self._get_fallback_elevenlabs_voices()
+    
+    def _get_fallback_elevenlabs_voices(self) -> List[Dict[str, Any]]:
+        """Fallback ElevenLabs voices if API is unavailable"""
         return [
             {
                 "id": "elevenlabs-rachel",
@@ -383,25 +442,171 @@ class VoiceService:
                 "description": "High-quality AI voice with natural intonation",
                 "features": ["Natural speech", "Emotion control", "Custom training"],
                 "quality_score": 9.2,
-                "cost_per_character": 0.0001
+                "cost_per_character": 0.0001,
+                "elevenlabs_voice_id": "21m00Tcm4TlvDq8ikWAM"
             },
             {
-                "id": "elevenlabs-josh",
-                "name": "Josh (ElevenLabs)",
+                "id": "elevenlabs-adam",
+                "name": "Adam (ElevenLabs)",
                 "provider": "elevenlabs",
                 "category": "premium", 
                 "language_code": "en-US",
                 "gender": "male",
-                "personality": ["energetic", "motivational", "friendly"],
+                "personality": ["deep", "authoritative", "professional"],
                 "is_premium": True,
                 "is_free": False,
-                "description": "Energetic male voice perfect for motivation",
+                "description": "Professional male voice with authority",
                 "features": ["Natural speech", "Emotion control", "Custom training"],
                 "quality_score": 9.1,
-                "cost_per_character": 0.0001
+                "cost_per_character": 0.0001,
+                "elevenlabs_voice_id": "pNInz6obpgDQGcFmaJgB"
             }
         ]
     
+    def _determine_gender(self, voice_name: str) -> str:
+        """Determine gender from voice name"""
+        female_names = ['rachel', 'bella', 'elli', 'natasha', 'dorothy', 'sarah']
+        male_names = ['adam', 'antoni', 'arnold', 'clyde', 'dave', 'ethan', 'fin', 'giovanni', 'josh', 'sam']
+        
+        name_lower = voice_name.lower()
+        if any(name in name_lower for name in female_names):
+            return "female"
+        elif any(name in name_lower for name in male_names):
+            return "male"
+        else:
+            return "neutral"
+    
+    async def _generate_elevenlabs_preview(self, voice_id: str, text: str) -> Dict[str, Any]:
+        """Generate ElevenLabs voice preview"""
+        if not self.elevenlabs_client:
+            return {"error": "ElevenLabs not configured"}
+        
+        # Extract actual ElevenLabs voice ID
+        elevenlabs_voice_id = voice_id.replace("elevenlabs-", "")
+        
+        try:
+            # Generate audio using ElevenLabs API
+            url = f"{self.elevenlabs_client['base_url']}/text-to-speech/{elevenlabs_voice_id}"
+            
+            data = {
+                "text": text,
+                "model_id": "eleven_monolingual_v1",
+                "voice_settings": {
+                    "stability": 0.5,
+                    "similarity_boost": 0.5
+                }
+            }
+            
+            response = requests.post(
+                url,
+                json=data,
+                headers={**self.elevenlabs_client["headers"], "Content-Type": "application/json"}
+            )
+            
+            if response.status_code == 200:
+                # Convert audio to base64 for frontend playback
+                audio_base64 = base64.b64encode(response.content).decode('utf-8')
+                
+                return {
+                    "voice_id": voice_id,
+                    "preview_type": "elevenlabs",
+                    "text": text,
+                    "audio_data": audio_base64,
+                    "audio_format": "mp3",
+                    "cost": len(text) * 0.0001,
+                    "is_free": False,
+                    "quality": "premium",
+                    "duration_estimate": len(text) * 0.05  # Rough estimate
+                }
+            else:
+                logger.error(f"ElevenLabs TTS error: {response.status_code}")
+                return {"error": "Failed to generate preview"}
+                
+        except Exception as e:
+            logger.error(f"Error generating ElevenLabs preview: {e}")
+            return {"error": str(e)}
+
+    async def synthesize_speech(self, voice_id: str, text: str) -> Dict[str, Any]:
+        """Synthesize speech for actual use (calls, etc.)"""
+        if voice_id.startswith("browser-"):
+            return {
+                "type": "browser",
+                "text": text,
+                "config": {
+                    "rate": 0.9,
+                    "pitch": 1.0,
+                    "volume": 1.0
+                }
+            }
+        elif voice_id.startswith("elevenlabs-"):
+            return await self._synthesize_elevenlabs(voice_id, text)
+        else:
+            return await self._synthesize_other_premium(voice_id, text)
+    
+    async def _synthesize_elevenlabs(self, voice_id: str, text: str) -> Dict[str, Any]:
+        """Synthesize speech using ElevenLabs"""
+        if not self.elevenlabs_client:
+            return {"error": "ElevenLabs not configured"}
+        
+        elevenlabs_voice_id = voice_id.replace("elevenlabs-", "")
+        
+        try:
+            url = f"{self.elevenlabs_client['base_url']}/text-to-speech/{elevenlabs_voice_id}"
+            
+            data = {
+                "text": text,
+                "model_id": "eleven_monolingual_v1",
+                "voice_settings": {
+                    "stability": 0.6,
+                    "similarity_boost": 0.8,
+                    "style": 0.0,
+                    "use_speaker_boost": True
+                }
+            }
+            
+            response = requests.post(
+                url,
+                json=data,
+                headers={**self.elevenlabs_client["headers"], "Content-Type": "application/json"}
+            )
+            
+            if response.status_code == 200:
+                audio_base64 = base64.b64encode(response.content).decode('utf-8')
+                
+                return {
+                    "type": "elevenlabs",
+                    "audio_data": audio_base64,
+                    "audio_format": "mp3",
+                    "cost": len(text) * 0.0001,
+                    "character_count": len(text)
+                }
+            else:
+                logger.error(f"ElevenLabs synthesis error: {response.status_code}")
+                return {"error": "Synthesis failed"}
+                
+        except Exception as e:
+            logger.error(f"Error in ElevenLabs synthesis: {e}")
+            return {"error": str(e)}
+
+    async def _synthesize_other_premium(self, voice_id: str, text: str) -> Dict[str, Any]:
+        """Synthesize speech using other premium providers (OpenAI, Google)"""
+        if voice_id.startswith("openai-"):
+            return {
+                "type": "openai",
+                "text": text,
+                "voice_id": voice_id.replace("openai-", ""),
+                "cost": len(text) * 0.000015
+            }
+        elif voice_id.startswith("google-"):
+            return {
+                "type": "google",
+                "text": text,
+                "voice_id": voice_id,
+                "cost": len(text) * 0.000016
+            }
+        else:
+            return {"error": "Unknown voice provider"}
+
     async def _get_openai_voices(self) -> List[Dict[str, Any]]:
         """Get OpenAI TTS voices (premium)"""
         if not settings.OPENAI_API_KEY:

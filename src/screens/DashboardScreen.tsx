@@ -1,114 +1,163 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  SafeAreaView, 
-  ScrollView, 
-  TouchableOpacity,
-  RefreshControl
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { CompositeNavigationProp } from '@react-navigation/native';
-import { fontSize, spacing, fontWeight, borderRadius } from '../styles/theme';
+import { CompositeNavigationProp, useFocusEffect, useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+    Alert,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { Badge, Button, Card, Text } from '../components/ui';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
-import { Button, Card, Badge, ProgressBar, Text } from '../components/ui';
-import { Task, RootStackParamList, MainTabParamList } from '../types';
+import { supabase } from '../services/supabase';
+import { TaskService } from '../services/taskService';
+import { borderRadius, fontSize, spacing } from '../styles/theme';
+import { MainTabParamList, RootStackParamList, Task } from '../types';
 
 type NavigationProp = CompositeNavigationProp<
-  BottomTabNavigationProp<MainTabParamList, 'ToDoList'>,
-  StackNavigationProp<RootStackParamList>
+  StackNavigationProp<RootStackParamList>,
+  BottomTabNavigationProp<MainTabParamList>
 >;
 
-// Mock data - in real app this would come from API/state management
-const mockTasks: Task[] = [
-  {
-    id: '1',
-    userId: 'user1',
-    title: 'Morning workout',
-    scheduledTime: '2024-01-15T07:00:00Z',
-    isCompleted: false,
-    isRecurring: true,
-    recurrenceType: 'daily',
-    isSilentMode: false,
-    createdAt: '2024-01-10T00:00:00Z',
-    updatedAt: '2024-01-10T00:00:00Z',
-  },
-  {
-    id: '2',
-    userId: 'user1',
-    title: 'Read for 30 minutes',
-    scheduledTime: '2024-01-15T20:00:00Z',
-    isCompleted: true,
-    isRecurring: true,
-    recurrenceType: 'daily',
-    isSilentMode: false,
-    createdAt: '2024-01-10T00:00:00Z',
-    updatedAt: '2024-01-15T20:30:00Z',
-    completedAt: '2024-01-15T20:25:00Z',
-  },
-  {
-    id: '3',
-    userId: 'user1',
-    title: 'Call mom',
-    scheduledTime: '2024-01-15T18:00:00Z',
-    isCompleted: false,
-    isRecurring: false,
-    isSilentMode: true,
-    createdAt: '2024-01-15T00:00:00Z',
-    updatedAt: '2024-01-15T00:00:00Z',
-  },
-];
-
-const mockStats = {
-  currentStreak: 7,
-  longestStreak: 15,
-  completionRate: 85,
-  tasksCompletedToday: 1,
-  totalTasksToday: 3,
-};
+interface TaskStats {
+  tasksCompletedToday: number;
+  totalTasksToday: number;
+}
 
 export const ToDoListScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { theme, isDark } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [stats, setStats] = useState<TaskStats>({
+    tasksCompletedToday: 0,
+    totalTasksToday: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
   // Create dynamic styles based on current theme
   const styles = React.useMemo(() => createStyles(theme, isDark), [theme, isDark]);
 
+  // Load data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboardData();
+    }, [])
+  );
+
+  // Real-time subscription for task updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const subscription = supabase
+      .channel('task-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'tasks',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Task changed:', payload);
+          loadTasks(); // Reload tasks when changes occur
+        }
+      )
+      .on('postgres_changes',
+        {
+          event: '*',
+          schema: 'public', 
+          table: 'task_executions',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Task execution changed:', payload);
+          loadTasks(); // Reload when executions change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user?.id]);
+
+  const loadDashboardData = async () => {
+    setLoading(true);
+    await loadTasks();
+    setLoading(false);
+  };
+
+  const loadTasks = async () => {
+    try {
+      const allTasks = await TaskService.getAllTasks();
+      setTasks(allTasks);
+      
+      // Update stats based on loaded tasks
+      const todaysTasks = allTasks.filter(task => {
+        const taskDate = new Date(task.scheduledTime).toDateString();
+        const today = new Date().toDateString();
+        return taskDate === today;
+      });
+      
+      const completed = todaysTasks.filter(task => task.isCompleted).length;
+      setStats({
+        tasksCompletedToday: completed,
+        totalTasksToday: todaysTasks.length
+      });
+    } catch (error) {
+      console.error('Failed to load tasks:', error);
+      Alert.alert('Error', 'Failed to load tasks. Please try again.');
+    }
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    await loadDashboardData();
+    setRefreshing(false);
   };
 
   const handleCreateTask = () => {
-    // Navigate to Create Task tab
-    console.log('Navigate to Create Task');
     navigation.navigate('CreateTask');
   };
 
+  const handleTaskToggle = async (taskId: string) => {
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
 
+      const updatedTask = {
+        ...task,
+        isCompleted: !task.isCompleted,
+        completedAt: !task.isCompleted ? new Date().toISOString() : undefined
+      };
 
-  const handleTaskToggle = (taskId: string) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === taskId
-          ? { 
-              ...task, 
-              isCompleted: !task.isCompleted,
-              completedAt: !task.isCompleted ? new Date().toISOString() : undefined
-            }
-          : task
-      )
-    );
+      // Optimistically update UI
+      setTasks(prevTasks =>
+        prevTasks.map(t => t.id === taskId ? updatedTask : t)
+      );
+
+      // Update via service
+      await TaskService.updateTask(taskId, {
+        isCompleted: updatedTask.isCompleted,
+        completedAt: updatedTask.completedAt
+      });
+
+      // Refresh tasks
+      await loadTasks();
+    } catch (error) {
+      console.error('Failed to toggle task:', error);
+      // Revert optimistic update
+      await loadTasks();
+      Alert.alert('Error', 'Failed to update task. Please try again.');
+    }
   };
 
   const getGreeting = () => {
@@ -133,151 +182,118 @@ export const ToDoListScreen: React.FC = () => {
   });
 
   const completedTasksToday = todaysTasks.filter(task => task.isCompleted).length;
+  const progressPercentage = todaysTasks.length > 0 
+    ? (completedTasksToday / todaysTasks.length) * 100 
+    : 0;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text variant="h6" color="textSecondary">Loading your tasks...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Empty Header Section */}
-      <View style={styles.header} />
-      
       <ScrollView 
-        style={styles.content}
+        style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Greeting Section */}
-        <View style={styles.greetingSection}>
-          <Text style={styles.greeting}>
-            {getGreeting()}, {user?.name || user?.email?.split('@')[0] || 'there'}!
-          </Text>
-          <Text style={styles.subGreeting}>
-            {new Date().toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </Text>
-        </View>
-
-        {/* Quick Stats Cards */}
-        <View style={styles.statsContainer}>
-          <Card style={styles.statCard} shadow="lg">
-            <View style={styles.statContent}>
-              <View style={styles.statIcon}>
-                <Ionicons name="flame" size={24} color={theme.colors.warning} />
-              </View>
-              <View style={styles.statInfo}>
-                <Text style={styles.statNumber}>{mockStats.currentStreak}</Text>
-                <Text style={styles.statLabel}>Day Streak</Text>
-              </View>
-            </View>
-          </Card>
-
-          <Card style={styles.statCard} shadow="lg">
-            <View style={styles.statContent}>
-              <View style={styles.statIcon}>
-                <Ionicons name="checkmark-circle" size={24} color={theme.colors.success} />
-              </View>
-              <View style={styles.statInfo}>
-                <Text style={styles.statNumber}>{completedTasksToday}/{todaysTasks.length}</Text>
-                <Text style={styles.statLabel}>Today</Text>
-              </View>
-            </View>
-          </Card>
-        </View>
-
-        {/* Completion Progress */}
-        <Card style={styles.progressCard} shadow="md">
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressTitle}>Today's Progress</Text>
-            <Badge variant="info" size="sm">
-              {Math.round((completedTasksToday / Math.max(todaysTasks.length, 1)) * 100)}%
-            </Badge>
-          </View>
-          <ProgressBar 
-            progress={(completedTasksToday / Math.max(todaysTasks.length, 1)) * 100}
-            height={12}
-            showLabel={false}
-            color={theme.colors.primary}
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
           />
-          <Text style={styles.progressSubtext}>
-            {completedTasksToday} of {todaysTasks.length} tasks completed
-          </Text>
-        </Card>
+        }
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text variant="h4" color="text" style={styles.greeting}>
+              {getGreeting()}{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!
+            </Text>
+            <Text variant="body" color="textSecondary">
+              Let's make today productive
+            </Text>
+          </View>
+        </View>
 
-        {/* Today's Tasks */}
+        {/* Tasks */}
         <Card style={styles.tasksCard} shadow="md">
           <View style={styles.tasksHeader}>
-            <Text style={styles.tasksTitle}>Today's Tasks</Text>
-            <TouchableOpacity onPress={handleCreateTask} style={styles.addButton}>
-              <Ionicons name="add" size={20} color={theme.colors.primary} />
+            <Text variant="h6" color="text">All Tasks</Text>
+            <TouchableOpacity onPress={handleCreateTask}>
+              <Ionicons name="add-circle" size={24} color={theme.colors.primary} />
             </TouchableOpacity>
           </View>
 
-          {todaysTasks.length === 0 ? (
+          {tasks.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="calendar-outline" size={48} color={theme.colors.textSecondary} />
-              <Text style={styles.emptyStateText}>No tasks scheduled for today</Text>
-              <Text style={styles.emptyStateSubtext}>Create your first AI reminder!</Text>
+              <Ionicons name="checkmark-circle-outline" size={48} color={theme.colors.textSecondary} />
+              <Text variant="body" color="textSecondary" style={styles.emptyText}>
+                No tasks created yet
+              </Text>
               <Button
-                title="Create Task"
-                size="sm"
+                title="Create Your First Task"
                 onPress={handleCreateTask}
-                style={styles.emptyStateButton}
+                variant="primary"
+                style={styles.createButton}
               />
             </View>
           ) : (
             <View style={styles.tasksList}>
-              {todaysTasks.map((task) => (
+              {tasks.map((task, index) => (
                 <TouchableOpacity
                   key={task.id}
-                  style={[styles.taskItem, task.isCompleted && styles.taskItemCompleted]}
+                  style={[
+                    styles.taskItem,
+                    task.isCompleted && styles.taskItemCompleted,
+                    index === tasks.length - 1 && styles.taskItemLast
+                  ]}
                   onPress={() => handleTaskToggle(task.id)}
                 >
                   <View style={styles.taskContent}>
-                    <View style={styles.taskMeta}>
-                      <View style={[
-                        styles.taskStatus,
-                        { backgroundColor: task.isCompleted ? theme.colors.success : theme.colors.textSecondary }
-                      ]}>
-                        <Ionicons
-                          name={task.isCompleted ? "checkmark" : "time"}
-                          size={12}
-                          color="#ffffff"
-                        />
-                      </View>
-                      <Text style={styles.taskTime}>{formatTime(task.scheduledTime)}</Text>
-                      {task.isSilentMode && (
-                        <View style={styles.silentBadge}>
-                          <Ionicons name="notifications-off" size={12} color={theme.colors.textSecondary} />
-                        </View>
-                      )}
-                    </View>
-                    <Text style={[styles.taskTitle, task.isCompleted && styles.taskTitleCompleted]}>
-                      {task.title}
-                    </Text>
-                    {task.isRecurring && (
-                      <View style={styles.recurringBadge}>
-                        <Ionicons name="repeat" size={12} color={theme.colors.textSecondary} />
-                        <Text style={styles.recurringText}>{task.recurrenceType}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <TouchableOpacity style={styles.taskAction}>
                     <Ionicons
-                      name={task.isCompleted ? "checkmark-circle" : "ellipse-outline"}
+                      name={task.isCompleted ? 'checkmark-circle' : 'ellipse-outline'}
                       size={24}
                       color={task.isCompleted ? theme.colors.success : theme.colors.textSecondary}
                     />
-                  </TouchableOpacity>
+                    <View style={styles.taskDetails}>
+                      <Text
+                        variant="body"
+                        color={task.isCompleted ? 'textSecondary' : 'text'}
+                        style={[
+                          styles.taskTitle,
+                          task.isCompleted && styles.taskTitleCompleted
+                        ]}
+                      >
+                        {task.title}
+                      </Text>
+                      <View style={styles.taskMeta}>
+                        <Text variant="caption" color="textSecondary">
+                          {formatTime(task.scheduledTime)}
+                        </Text>
+                        {task.isRecurring && (
+                          <Badge variant="secondary" size="sm" style={styles.taskBadge}>
+                            Recurring
+                          </Badge>
+                        )}
+                        {task.isSilentMode && (
+                          <Badge variant="warning" size="sm" style={styles.taskBadge}>
+                            Silent
+                          </Badge>
+                        )}
+                      </View>
+                    </View>
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
           )}
         </Card>
-
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -293,70 +309,15 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     height: 60,
     backgroundColor: theme.colors.background,
   },
-  content: {
+  scrollView: {
     flex: 1,
     padding: spacing.lg,
-  },
-  greetingSection: {
-    marginBottom: spacing.xl,
   },
   greeting: {
     fontSize: fontSize['2xl'],
     fontWeight: '700',
     color: theme.colors.text,
     marginBottom: spacing.xs,
-  },
-  subGreeting: {
-    fontSize: fontSize.base,
-    color: theme.colors.textSecondary,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    marginBottom: spacing.lg,
-    gap: spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    padding: spacing.md,
-  },
-  statContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statIcon: {
-    marginRight: spacing.md,
-  },
-  statInfo: {
-    flex: 1,
-  },
-  statNumber: {
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: spacing.xs / 2,
-  },
-  statLabel: {
-    fontSize: fontSize.sm,
-    color: theme.colors.textSecondary,
-  },
-  progressCard: {
-    marginBottom: spacing.lg,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  progressTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
-  progressSubtext: {
-    fontSize: fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginTop: spacing.sm,
   },
   tasksCard: {
     marginBottom: spacing.lg,
@@ -367,33 +328,18 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.lg,
   },
-  tasksTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
-  addButton: {
-    padding: spacing.sm,
-    borderRadius: borderRadius.full,
-    backgroundColor: theme.colors.primary + '10',
-  },
   emptyState: {
     alignItems: 'center',
     paddingVertical: spacing['3xl'],
   },
-  emptyStateText: {
+  emptyText: {
     fontSize: fontSize.lg,
     fontWeight: '500',
     color: theme.colors.text,
     marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
-  emptyStateSubtext: {
-    fontSize: fontSize.base,
-    color: theme.colors.textSecondary,
-    marginBottom: spacing.xl,
-  },
-  emptyStateButton: {
+  createButton: {
     paddingHorizontal: spacing.xl,
   },
   tasksList: {
@@ -413,32 +359,14 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     opacity: 0.7,
     backgroundColor: isDark ? theme.colors.success + '10' : theme.colors.success + '05',
   },
+  taskItemLast: {
+    borderBottomWidth: 0,
+  },
   taskContent: {
     flex: 1,
   },
-  taskMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  taskStatus: {
-    width: 20,
-    height: 20,
-    borderRadius: borderRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.sm,
-  },
-  taskTime: {
-    fontSize: fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginRight: spacing.md,
-  },
-  silentBadge: {
-    backgroundColor: theme.colors.textSecondary + '10',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs / 2,
-    borderRadius: borderRadius.md,
+  taskDetails: {
+    flex: 1,
   },
   taskTitle: {
     fontSize: fontSize.base,
@@ -450,18 +378,17 @@ const createStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     textDecorationLine: 'line-through',
     color: theme.colors.textSecondary,
   },
-  recurringBadge: {
+  taskMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: spacing.sm,
   },
-  recurringText: {
-    fontSize: fontSize.xs,
-    color: theme.colors.textSecondary,
+  taskBadge: {
     marginLeft: spacing.xs,
-    textTransform: 'capitalize',
   },
-  taskAction: {
-    padding: spacing.sm,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-
 }); 
